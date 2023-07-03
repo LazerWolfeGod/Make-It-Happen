@@ -115,11 +115,33 @@ class MAIN:
 
         ## add user menu
         self.empty = completedata({})
-        ui.makescroller(0,0,screenh,self.shiftaddmenu,maxp=100+60*len(self.empty),pageheight=screenh,anchor=('w',0),objanchor=('w',0),ID='add menu scroller',menu='add user',runcommandat=1,scalesize=False)
         self.shiftingitems = []
+        yinc = 100
+        checkboxes = {'Pronouns':['She/Her','He/Him','They/Them','textbox'],'Driving license':['Yes','No'],'Owns Vehicle':['Yes','No'],'Interested in volunteer driving':['Yes','No'],'Disability?':['Yes','No']}
         for i,a in enumerate(self.empty):
-            ui.maketext(30,100+i*60,a,50,'add user',ID='add user'+a)
+            ui.maketext(30,yinc,a,35,'add user',ID='add user'+a,maxwidth=200)
+            h = ui.IDs['add user'+a].height
+            if a in checkboxes:
+                xinc = 240
+                disper = 540/len(checkboxes[a])
+                for b in checkboxes[a]:
+                    if b != 'textbox':
+                        ui.maketext(xinc,yinc+h/2,b,30,'add user',ID='add user'+a+b,objanchor=(0,'h/2'))
+                        xinc+=ui.IDs['add user'+a+b].width+10
+                        ui.makecheckbox(xinc,yinc+h/2,40,menu='add user',ID='add user checkbox'+a+b,objanchor=(0,'h/2'),spacing=-8,clickdownsize=2,toggle=False)
+                        if a == 'Pronouns': xinc+=ui.IDs['add user checkbox'+a+b].width+10
+                        else: xinc+=ui.IDs['add user checkbox'+a+b].width+40
+                        self.shiftingitems.append('add user'+a+b)
+                        self.shiftingitems.append('add user checkbox'+a+b)
+                    else:
+                        ui.maketextbox(xinc,yinc,'',133,height=h,menu='add user',ID='add user inp'+a,textsize=32)
+                        self.shiftingitems.append('add user inp'+a)
+            else:
+                ui.maketextbox(240,yinc,'',540,height=h,menu='add user',ID='add user inp'+a,textsize=32)
+                self.shiftingitems.append('add user inp'+a)
             self.shiftingitems.append('add user'+a)
+            yinc+=h+15
+        ui.makescroller(0,0,screenh,self.shiftaddmenu,maxp=yinc,pageheight=screenh,anchor=('w',0),objanchor=('w',0),ID='add menu scroller',menu='add user',runcommandat=1,scalesize=False)
         
     def generatemenus(self):
         for a in self.menus:
@@ -146,12 +168,12 @@ class MAIN:
         ui.movemenu('add user','up')
     def shiftaddmenu(self):
         for a in self.shiftingitems:
-            ui.IDs[a].y = ui.IDs[a].starty-ui.IDs['add menu scroller'].scroll
+            ui.IDs[a].y = ui.IDs[a].starty-ui.IDs[a].objanchor[1]-ui.IDs['add menu scroller'].scroll
             ui.IDs[a].refreshcords(ui)
     def reshiftgui(self):
         ui.IDs['add menu scroller'].height = screenh
         ui.IDs['add menu scroller'].pageheight = screenh/ui.scale
-        ui.IDs['add menu scroller'].maxp = (100+60*len(self.empty))
+##        ui.IDs['add menu scroller'].maxp = (100+60*len(self.empty))
         ui.IDs['add menu scroller'].refresh(ui)
         
 main = MAIN()
