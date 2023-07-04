@@ -71,6 +71,7 @@ class ITEM:
         ui.IDs[self.menu+'table'].refreshcords(ui)
     def reshiftgui(self):
         ui.IDs[self.menu+'rect'].width = screenw
+        ui.IDs[self.menu+'scroller'].scroll = 0
         ui.IDs[self.menu+'scroller'].height = screenh-80
         ui.IDs[self.menu+'scroller'].pageheight = screenh-80
         ui.IDs[self.menu+'scroller'].maxp = ui.IDs[self.menu+'table'].height
@@ -124,24 +125,30 @@ class MAIN:
             if a in checkboxes:
                 xinc = 240
                 disper = 540/len(checkboxes[a])
+                exclusive = ['add user checkbox'+a+b for b in checkboxes[a] if b!='textbox']
                 for b in checkboxes[a]:
                     if b != 'textbox':
                         ui.maketext(xinc,yinc+h/2,b,30,'add user',ID='add user'+a+b,objanchor=(0,'h/2'))
                         xinc+=ui.IDs['add user'+a+b].width+10
-                        ui.makecheckbox(xinc,yinc+h/2,40,menu='add user',ID='add user checkbox'+a+b,objanchor=(0,'h/2'),spacing=-8,clickdownsize=2,toggle=False)
+                        ui.makecheckbox(xinc,yinc+h/2,40,menu='add user',ID='add user checkbox'+a+b,objanchor=(0,'h/2'),spacing=-8,clickdownsize=2,toggle=False,bindtoggle=exclusive)
                         if a == 'Pronouns': xinc+=ui.IDs['add user checkbox'+a+b].width+10
                         else: xinc+=ui.IDs['add user checkbox'+a+b].width+40
                         self.shiftingitems.append('add user'+a+b)
                         self.shiftingitems.append('add user checkbox'+a+b)
                     else:
-                        ui.maketextbox(xinc,yinc,'',133,height=h,menu='add user',ID='add user inp'+a,textsize=32)
-                        self.shiftingitems.append('add user inp'+a)
+                        ui.maketextbox(xinc,yinc,'',133,height=h,menu='add user',ID='add user inp'+a+b,textsize=32)
+                        self.shiftingitems.append('add user inp'+a+b)
             else:
-                ui.maketextbox(240,yinc,'',540,height=h,menu='add user',ID='add user inp'+a,textsize=32)
+                ui.maketextbox(240,yinc,'',540,height=h,menu='add user',ID='add user inp'+a,textsize=32,spacing=1)
                 self.shiftingitems.append('add user inp'+a)
             self.shiftingitems.append('add user'+a)
             yinc+=h+15
-        ui.makescroller(0,0,screenh,self.shiftaddmenu,maxp=yinc,pageheight=screenh,anchor=('w',0),objanchor=('w',0),ID='add menu scroller',menu='add user',runcommandat=1,scalesize=False)
+        ui.makescroller(0,100,screenh-100,self.shiftaddmenu,maxp=yinc,pageheight=screenh,anchor=('w',0),objanchor=('w',0),ID='add menu scroller',menu='add user',runcommandat=1,scalesize=False)
+        ui.maketext(20,45,'New User',70,'add user',textcol=(240,240,240),layer=3,backingcol=(83,86,100),centery=True)
+        ui.makerect(0,86,screenw,4,menu='add user',layer=2,col=(80,150,160))
+        ui.makerect(0,0,screenw,86,menu='add user',layer=2,col=(83,86,100))
+        ui.makebutton(280,43,'Clear',50,self.clearuser,'add user',layer=3,roundedcorners=6,centery=True,clickdownsize=2,textoffsety=1)
+        ui.makebutton(430,43,'Save',50,self.saveuser,'add user',layer=3,roundedcorners=6,centery=True,clickdownsize=2,textoffsety=1)
         
     def generatemenus(self):
         for a in self.menus:
@@ -166,14 +173,33 @@ class MAIN:
         ui.movemenu('info'+str(ID),'left')
     def adduser(self):
         ui.movemenu('add user','up')
+    def clearuser(self):
+        for a in self.shiftingitems:
+            if type(ui.IDs[a]) == pyui.TEXTBOX:
+                ui.IDs[a].text = ''
+                ui.IDs[a].refresh(ui)
+            elif type(ui.IDs[a]) == pyui.BUTTON:
+                ui.IDs[a].toggle = False
+    def saveuser(self):
+        data = {}
+        empty = completedata({})
+        for a in self.shiftingitems:
+            if type(ui.IDs[a]) == pyui.TEXTBOX:
+                temp = a.removeprefix('add user')
+                if temp in empty:
+                    data[temp] = ui.IDs[a].text
+                
+        self.data.append(completedata(data))
+        self.refreshtable()
+        self.menus.append(ITEM(completedata(data)))
+                    
     def shiftaddmenu(self):
         for a in self.shiftingitems:
             ui.IDs[a].y = ui.IDs[a].starty-ui.IDs[a].objanchor[1]-ui.IDs['add menu scroller'].scroll
             ui.IDs[a].refreshcords(ui)
     def reshiftgui(self):
-        ui.IDs['add menu scroller'].height = screenh
+        ui.IDs['add menu scroller'].height = screenh-100
         ui.IDs['add menu scroller'].pageheight = screenh/ui.scale
-##        ui.IDs['add menu scroller'].maxp = (100+60*len(self.empty))
         ui.IDs['add menu scroller'].refresh(ui)
         
 main = MAIN()
