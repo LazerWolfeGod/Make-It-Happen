@@ -19,12 +19,16 @@ class funcem:
         self.func = lambda: main.editmenu(param)
 
 def completedata(data):
-    allitems = ['Surname','Forename','Pronouns','Title','Birth Date','Address','Postcode','Home Telephone','Work Telephone','Mobile Number','Email','Driving License','Owns Vehicle',
-                'Interested in volunteer driving','Days can work','Hours available per day','Times unable to complete work','Disability?','Emergency Contacts','Special Needs','Date Started','Active','ID']
+    allitems = ['Forename','Surname','Pronouns','Title','Birth Date','Address','Postcode','Home Telephone','Work Telephone','Mobile Number',
+                'Email','Driving License','Owns Vehicle','Interested in volunteer driving','Days can work','Hours available per day',
+                'Times unable to complete work','Disability?','Emergency Contacts','Special Needs','Date Started','Active','Staff','ID']
     processed = {}
     for a in allitems:
         if not(a in data):
-            processed[a] = ''
+            if a == 'ID':
+                processed[a] = -1
+            else:
+                processed[a] = ''
         else:
             processed[a] = data[a]
     return processed
@@ -58,7 +62,7 @@ class ITEM:
             else:
                 func = funcem(a,self)
                 obj = ui.makebutton(0,0,'{dots}',30,func.func,roundedcorners=4,clickdownsize=2)
-            data.append([a,self.data[a],obj])
+            data.append([str(a),str(self.data[a]),obj])
         ui.IDs[self.menu+'table'].data = data
         sc = ui.IDs[self.menu+'scroller']
         if (sc.maxp-sc.minp)>sc.pageheight: ui.IDs[self.menu+'table'].boxwidth = [(screenw-126-15)/2,(screenw-126-15)/2,100]
@@ -109,40 +113,49 @@ class MAIN:
         self.generatemenus()
         self.makegui()
     def makegui(self):
-        ## main
-        ui.makebutton(0,0,'Add User',50,self.adduser,anchor=('w-10',10),objanchor=('w',0),roundedcorners=4,verticalspacing=4,clickdownsize=2,scalex=False,scaley=False)
-        ui.maketable(0,0,[],['ID','Name','More'],anchor=(10,10),boxwidth=[70,300,100],verticalspacing=5,textsize=30,roundedcorners=4,col=(63,65,75),ID='main table')
+        ## title screen
+        ui.maketext(0,0,'',250,anchor=('w/2','h/4'),objanchor=('w/2','h/2'),img=pygame.image.load(pyui.resourcepath('make it happen.png')),colorkey=(251,251,251))
+        ui.makebutton(0,0,'Users',50,lambda: ui.movemenu('table','up'),roundedcorners=10,clickdownsize=2,verticalspacing=4,anchor=('w/2','h/2'),objanchor=('w/2',0))
+        ui.makebutton(0,60,'Add User',50,self.adduser,anchor=('w/2','h/2'),objanchor=('w/2',0),roundedcorners=10,verticalspacing=4,clickdownsize=2,scalex=False,scaley=False)
+        
+        
+        ## main table
+        ui.maketable(0,0,[],['ID','Name','More'],anchor=(10,60),boxwidth=[100,300,100],verticalspacing=5,textsize=30,roundedcorners=4,col=(63,65,75),ID='main table',menu='table',scalesize=False)
         self.refreshtable()
+
+        ui.maketextbox(10,10,'',(screenw-20)/2,menu='table',commandifenter=True,height=40,scalesize=False,textsize=23)
 
         ## add user menu
         self.empty = completedata({})
         self.shiftingitems = []
         yinc = 100
-        checkboxes = {'Pronouns':['She/Her','He/Him','They/Them','textbox'],'Driving license':['Yes','No'],'Owns Vehicle':['Yes','No'],'Interested in volunteer driving':['Yes','No'],'Disability?':['Yes','No']}
+        self.checkboxes = {'Pronouns':['She/Her','He/Him','They/Them','textbox'],'Driving license':['Yes','No'],'Owns Vehicle':['Yes','No'],'Interested in volunteer driving':['Yes','No'],'Disability?':['Yes','No'],'Staff':['Yes','No']}
         for i,a in enumerate(self.empty):
-            ui.maketext(30,yinc,a,35,'add user',ID='add user'+a,maxwidth=200)
-            h = ui.IDs['add user'+a].height
-            if a in checkboxes:
-                xinc = 240
-                disper = 540/len(checkboxes[a])
-                exclusive = ['add user checkbox'+a+b for b in checkboxes[a] if b!='textbox']
-                for b in checkboxes[a]:
-                    if b != 'textbox':
-                        ui.maketext(xinc,yinc+h/2,b,30,'add user',ID='add user'+a+b,objanchor=(0,'h/2'))
-                        xinc+=ui.IDs['add user'+a+b].width+10
-                        ui.makecheckbox(xinc,yinc+h/2,40,menu='add user',ID='add user checkbox'+a+b,objanchor=(0,'h/2'),spacing=-8,clickdownsize=2,toggle=False,bindtoggle=exclusive)
-                        if a == 'Pronouns': xinc+=ui.IDs['add user checkbox'+a+b].width+10
-                        else: xinc+=ui.IDs['add user checkbox'+a+b].width+40
-                        self.shiftingitems.append('add user'+a+b)
-                        self.shiftingitems.append('add user checkbox'+a+b)
-                    else:
-                        ui.maketextbox(xinc,yinc,'',133,height=h,menu='add user',ID='add user inp'+a+b,textsize=32)
-                        self.shiftingitems.append('add user inp'+a+b)
-            else:
-                ui.maketextbox(240,yinc,'',540,height=h,menu='add user',ID='add user inp'+a,textsize=32,spacing=1)
-                self.shiftingitems.append('add user inp'+a)
-            self.shiftingitems.append('add user'+a)
-            yinc+=h+15
+            if a != 'ID':
+                ui.maketext(30,yinc,a,35,'add user',ID='add user'+a,maxwidth=200)
+                h = ui.IDs['add user'+a].height
+                if a in self.checkboxes:
+                    xinc = 240
+                    disper = 540/len(self.checkboxes[a])
+                    exclusive = ['add user checkbox'+a+'*'+b for b in self.checkboxes[a] if b!='textbox']
+                    for b in self.checkboxes[a]:
+                        if b != 'textbox':
+                            ui.maketext(xinc,yinc+h/2,b,30,'add user',ID='add user'+a+'*'+b,objanchor=(0,'h/2'))
+                            xinc+=ui.IDs['add user'+a+'*'+b].width+10
+                            ui.makecheckbox(xinc,yinc+h/2,40,menu='add user',ID='add user checkbox'+a+'*'+b,objanchor=(0,'h/2'),spacing=-8,clickdownsize=2,toggle=False,bindtoggle=exclusive)
+                            if a == 'Pronouns': xinc+=ui.IDs['add user checkbox'+a+'*'+b].width+10
+                            else: xinc+=ui.IDs['add user checkbox'+a+'*'+b].width+40
+                            ui.IDs['add user checkbox'+a+'*'+b].storeddata = b
+                            self.shiftingitems.append('add user'+a+'*'+b)
+                            self.shiftingitems.append('add user checkbox'+a+'*'+b)
+                        else:
+                            ui.maketextbox(xinc,yinc,'',133,height=h,menu='add user',ID='add user inp'+a+'*'+b,textsize=32)
+                            self.shiftingitems.append('add user inp'+a+'*'+b)
+                else:
+                    ui.maketextbox(240,yinc,'',540,height=h,menu='add user',ID='add user inp'+a,textsize=32,spacing=1)
+                    self.shiftingitems.append('add user inp'+a)
+                self.shiftingitems.append('add user'+a)
+                yinc+=h+15
         ui.makescroller(0,100,screenh-100,self.shiftaddmenu,maxp=yinc,pageheight=screenh,anchor=('w',0),objanchor=('w',0),ID='add menu scroller',menu='add user',runcommandat=1,scalesize=False)
         ui.maketext(20,45,'New User',70,'add user',textcol=(240,240,240),layer=3,backingcol=(83,86,100),centery=True)
         ui.makerect(0,86,screenw,4,menu='add user',layer=2,col=(80,150,160))
@@ -164,6 +177,7 @@ class MAIN:
             func = funcmn(self.data[a]['ID'],self)
             obj = ui.makebutton(0,0,'{dots}',30,func.func,roundedcorners=4,clickdownsize=2)
             data.append([self.data[a]['ID'],self.data[a]['Forename']+' '+self.data[a]['Surname'],obj])
+        ui.IDs['main table'].boxwidth = [100,(screenw-8-20-200),100]
         ui.IDs['main table'].data = data
         ui.IDs['main table'].refresh(ui)
     def moredetailmenu(self,ID):
@@ -181,13 +195,23 @@ class MAIN:
             elif type(ui.IDs[a]) == pyui.BUTTON:
                 ui.IDs[a].toggle = False
     def saveuser(self):
-        data = {}
+        data = {'ID':len(self.data)+1}
         empty = completedata({})
         for a in self.shiftingitems:
             if type(ui.IDs[a]) == pyui.TEXTBOX:
-                temp = a.removeprefix('add user')
-                if temp in empty:
+                temp = a.removeprefix('add user inp')
+                if '*' in temp:
+                    data[temp.split('*')[0]] = ui.IDs[a].text
+                elif temp in list(empty):
                     data[temp] = ui.IDs[a].text
+        for a in self.shiftingitems:
+            if type(ui.IDs[a]) == pyui.BUTTON:
+                temp = a.removeprefix('add user checkbox')
+                items = temp.split('*')
+                if ui.IDs[a].toggle:
+                    data[items[0]] = ui.IDs[a].storeddata
+                
+                
                 
         self.data.append(completedata(data))
         self.refreshtable()
@@ -198,6 +222,8 @@ class MAIN:
             ui.IDs[a].y = ui.IDs[a].starty-ui.IDs[a].objanchor[1]-ui.IDs['add menu scroller'].scroll
             ui.IDs[a].refreshcords(ui)
     def reshiftgui(self):
+        ui.IDs['main table'].boxwidth = [100,(screenw-8-20-200),100]
+        ui.IDs['main table'].refresh(ui)
         ui.IDs['add menu scroller'].height = screenh-100
         ui.IDs['add menu scroller'].pageheight = screenh/ui.scale
         ui.IDs['add menu scroller'].refresh(ui)
