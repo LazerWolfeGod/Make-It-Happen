@@ -182,7 +182,7 @@ class MAIN:
         self.makegui()
     def makegui(self):
         ## title screen
-        ui.maketext(0,0,'',250,anchor=('w/2','0'),objanchor=('w/2','0'),img=pygame.image.load(pyui.resourcepath('make it happen upscaled.png')),colorkey=(251,251,251))
+        ui.maketext(0,0,'',250,anchor=('w/2','0'),objanchor=('w/2','0'),img=pygame.image.load(pyui.resourcepath('make it happen.png')),colorkey=(251,251,251))
         ui.makebutton(0,270,'Users',50,lambda: ui.movemenu('table','up'),roundedcorners=10,clickdownsize=2,verticalspacing=4,anchor=('w/2','0'),objanchor=('w/2',0))
         ui.makebutton(0,330,'Add User',50,self.adduser,anchor=('w/2','0'),objanchor=('w/2',0),roundedcorners=10,verticalspacing=4,clickdownsize=2,scalex=False,scaley=False)
         
@@ -318,6 +318,9 @@ class MAIN:
         ui.menuback()
     def deluser(self):
         notsql.store(self.data,'backup')
+        for a in ui.animations:
+            a.finish(ui,True)
+        ui.animations = []
         self.data.remove(self.menus[self.menuin].data)
         self.menus[self.menuin].wipe()
         del self.menus[self.menuin]
