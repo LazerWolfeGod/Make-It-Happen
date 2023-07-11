@@ -1,4 +1,4 @@
-import pygame,math,random,sys,os,copy
+mport pygame,math,random,sys,os,copy
 import PyUI as pyui
 pygame.init()
 screenw = 800
@@ -129,7 +129,7 @@ class ITEM:
         ## main
         ui.maketext(10,25,'Data for '+self.data['Forename'],40,self.menu,self.menu+'title',backingcol=(83,86,100),objanchor=(0,'h/2'),scalesize=False,layer=3)
         ui.makebutton(-8,25,'Back',30,ui.menuback,self.menu,ID=self.menu+'back',anchor=('w',0),objanchor=('w','h/2'),roundedcorners=10,verticalspacing=4,clickdownsize=2,scalesize=False,layer=3,col=basecol)
-        ui.makebutton(-78,25,'Delete User',30,main.deluser,self.menu,ID=self.menu+'del',anchor=('w',0),objanchor=('w','h/2'),roundedcorners=10,verticalspacing=4,clickdownsize=2,scalesize=False,layer=3,col=basecol)
+        ui.makebutton(-78,25,'Delete User',30,lambda: main.confirm(main.deluser),self.menu,ID=self.menu+'del',anchor=('w',0),objanchor=('w','h/2'),roundedcorners=10,verticalspacing=4,clickdownsize=2,scalesize=False,layer=3,col=basecol)
         ui.makerect(0,0,screenw,50,menu=self.menu,layer=2,scalesize=False,col=(83,86,100),ID=self.menu+'rect')
         ui.makerect(0,50,screenw,4,menu=self.menu,layer=2,scalesize=False,col=(80,150,160),ID=self.menu+'rect2')
         ui.maketable(0,0,[],[ui.maketext(0,0,'Item',45,self.menu,roundedcorners=4,col=(83,84,100),textcenter=True),
@@ -307,8 +307,13 @@ class MAIN:
         # view emergency contacts
         ui.makewindowedmenu(60,60,680,335,'view contact','add user',basecol,roundedcorners=10,scaley=True,ID='view contacts')
         ui.maketable(10,10,[],['Name','',''],'view contact',ID='view contacts menu',col=basecol,roundedcorners=4,verticalspacing=3,textsize=30,boxwidth=[545,80,27],boxheight=27)
-        ui.makebutton(12,12,'+',40,lambda: self.newcontact(-1),'view contact',col=basecol,roundedcorners=4,clickdownsize=1,border=2,layer=2,width=27,height=27,textoffsety=-1)
+        ui.makebutton(12,12,'+',40,lambda: self.newcontact(-1),'view contact',col=basecol,roundedcorners=4,clickdownsize=1,border=2,layer=2,width=27,height=27,textoffsety=-2,textoffsetx=1)
         self.refreshcontactstable()
+
+        ## confirm menu
+        ui.makewindowedmenu(0,0,200,122,'confirm',col=basecol,roundedcorners=10,ID='confirm menu',center=True,anchor=('w/2','h/2'))
+        ui.maketext(100,5,'Confirm',40,'confirm',backingcol=basecol,objanchor=('w/2',0))
+        ui.makebutton(100,50,'DELETE',50,menu='confirm',verticalspacing=6,roundedcorners=7,col=(180,60,60),objanchor=('w/2',0),ID='confirm button',clickdownsize=2)
         
         
         
@@ -422,6 +427,11 @@ class MAIN:
                 self.newusercontacts[self.contactmenuuse[1]] = data
         self.refreshcontactstable()
         ui.menuback()
+
+    def confirm(self,func):
+        ui.IDs['confirm menu'].behindmenu = ui.activemenu
+        ui.IDs['confirm button'].command = func
+        ui.movemenu('confirm','down')
     
     def slidetable(self):
         ui.IDs['main table'].y = 60-ui.IDs['main scroller'].scroll
