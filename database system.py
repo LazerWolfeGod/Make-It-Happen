@@ -20,6 +20,12 @@ class funcmn:
 class funcem:
     def __init__(self,param,main):
         self.func = lambda: main.editmenu(param)
+class funcec:
+    def __init__(self,param):
+        self.func = lambda: main.editcontact(param)
+class funcdc:
+    def __init__(self,param):
+        self.func = lambda: main.deletecontact(param)
 
 class notsql:
     def load():
@@ -42,13 +48,18 @@ class notsql:
             data.append({})
             spl = a.split(',')
             for i,b in enumerate(spl):
+                b = b.replace('`',',')
                 if keys[i] == 'ID': data[-1][keys[i]] = int(b)
+                elif keys[i] == 'Emergency Contacts':
+                    exec('emergencycontactexecvalue='+b,globals())
+                    data[-1][keys[i]] = [completecontactdata(e) for e in emergencycontactexecvalue]
                 else: data[-1][keys[i]] = b
         for a in range(len(data)):
             data[a] = completedata(data[a])
         data.sort(key=lambda x: x['ID'])
         return data
     def store(data,name='userdata'):
+        data = copy.deepcopy(data)
         with open(pyui.resourcepath(f'{name}.csv'),'w') as f:
             keys = list(completedata({}))
             st = ''
@@ -59,6 +70,8 @@ class notsql:
             for a in data:
                 st = ''
                 for k in keys:
+                    if type(a[k]) == str or type(a[k]) == list:
+                        a[k] = str(a[k]).replace(',','`')
                     st+=str(a[k])+','
                 st = st.removesuffix(',')
                 f.write(st+'\n')
@@ -79,6 +92,16 @@ def completedata(data):
                 processed[a] = -1
             else:
                 processed[a] = ''
+        else:
+            processed[a] = data[a]
+    return processed
+
+def completecontactdata(data={}):
+    allitems = ['Name','Address','Home Number','Mobile Number','Relationship']
+    processed = {}
+    for a in allitems:
+        if not (a in data):
+            processed[a] = ''
         else:
             processed[a] = data[a]
     return processed
@@ -104,7 +127,7 @@ class ITEM:
         self.makegui(main)
     def makegui(self,main):
         ## main
-        ui.maketext(10,25,'Data for '+self.data['Forename'],40,self.menu,self.menu+'title',backingcol=basecol,objanchor=(0,'h/2'),scalesize=False,layer=3)
+        ui.maketext(10,25,'Data for '+self.data['Forename'],40,self.menu,self.menu+'title',backingcol=(83,86,100),objanchor=(0,'h/2'),scalesize=False,layer=3)
         ui.makebutton(-8,25,'Back',30,ui.menuback,self.menu,ID=self.menu+'back',anchor=('w',0),objanchor=('w','h/2'),roundedcorners=10,verticalspacing=4,clickdownsize=2,scalesize=False,layer=3,col=basecol)
         ui.makebutton(-78,25,'Delete User',30,main.deluser,self.menu,ID=self.menu+'del',anchor=('w',0),objanchor=('w','h/2'),roundedcorners=10,verticalspacing=4,clickdownsize=2,scalesize=False,layer=3,col=basecol)
         ui.makerect(0,0,screenw,50,menu=self.menu,layer=2,scalesize=False,col=(83,86,100),ID=self.menu+'rect')
@@ -117,7 +140,7 @@ class ITEM:
 
         ## edit menu
         ui.makewindowedmenu(10,10,400,140,self.menu+'edit',self.menu,basecol,roundedcorners=8,scalesize=False,scalex=False,scaley=False,ID=self.menu+'window')
-        ui.maketable(5,5,[['Item',ui.maketextbox(0,0,'',200,2,self.menu+'edit',roundedcorners=4,height=80,textsize=30,verticalspacing=4)]],menu=self.menu+'edit',roundedcorners=4,boxwidth=[184,200],boxheight=80,textsize=35,scalesize=False,scalex=False,scaley=False,col=basecol,ID=self.menu+'editbox')
+        ui.maketable(5,5,[['Item',ui.maketextbox(0,0,'',200,2,self.menu+'edit',roundedcorners=4,height=80,textsize=30,verticalspacing=4,scalesize=False)]],menu=self.menu+'edit',roundedcorners=4,boxwidth=[184,200],boxheight=80,textsize=35,scalesize=False,scalex=False,scaley=False,col=basecol,ID=self.menu+'editbox')
         ui.makebutton(200,115,'Save',40,self.saveedited,self.menu+'edit',scalesize=False,scalex=False,scaley=False,roundedcorners=10,verticalspacing=3,center=True,ID=self.menu+'save')
     def refreshtable(self):
         ui.IDs[self.menu+'table'].wipe(ui,False)
@@ -126,9 +149,19 @@ class ITEM:
             if a == 'ID':
                 obj = ''
             else:
-                func = funcem(a,self)
-                obj = ui.makebutton(0,0,'{dots}',30,func.func,roundedcorners=4,clickdownsize=2)
-            data.append([str(a),str(self.data[a]),obj])
+                if a == 'Emergency Contacts':
+                    func = lambda: main.viewcontact(['Add',-1,self.data['ID']-1,self.menu])
+                else:
+                    func = funcem(a,self)
+                    func = func.func
+                obj = ui.makebutton(0,0,'{dots}',30,func,roundedcorners=4,clickdownsize=2)
+            if type(self.data[a]) == list:
+                st = ''
+                for b in self.data[a]:
+                    st+=(b['Name']+',')
+                data.append([str(a),st.removesuffix(','),obj])
+            else:                
+                data.append([str(a),str(self.data[a]),obj])
         ui.IDs[self.menu+'table'].data = data
         sc = ui.IDs[self.menu+'scroller']
         if (sc.maxp-sc.minp)>sc.pageheight: ui.IDs[self.menu+'table'].boxwidth = [(screenw-126-15)/2,(screenw-126-15)/2,100]
@@ -151,11 +184,12 @@ class ITEM:
         ui.IDs[self.menu+'scroller'].refresh(ui)
         if self.menu+'window' in ui.IDs:
             ui.IDs[self.menu+'editbox'].boxwidth = [184,screenw-36-184]
+            ui.IDs[self.menu+'editbox'].refresh(ui)
             ui.IDs[self.menu+'window'].width = screenw-10
     def editmenu(self,item):
         self.selected = item
         ui.IDs[self.menu+'editbox'].wipe(ui,True)
-        ui.IDs[self.menu+'editbox'].data = [[item,ui.maketextbox(0,0,str(self.data[item]),200,2,self.menu+'edit',roundedcorners=4,height=80,textsize=30,verticalspacing=4,command=self.saveedited,commandifenter=True)]]
+        ui.IDs[self.menu+'editbox'].data = [[item,ui.maketextbox(0,0,str(self.data[item]),500,2,self.menu+'edit',roundedcorners=4,height=80,textsize=30,verticalspacing=4,command=self.saveedited,commandifenter=True,scalesize=False)]]
         ui.IDs[self.menu+'editbox'].refresh(ui)
         ui.IDs[self.menu+'editbox'].refreshcords(ui)
         ui.IDs[self.menu+'table'].refreshcords(ui)
@@ -173,7 +207,12 @@ class ITEM:
              ui.delete(self.menu+a,False)
 
 class MAIN:
-    def __init__(self): 
+    def init(self):
+        self.newusercontacts = []
+        #display contactID userID menu
+        self.contactmenuuse = ['Add',0,-1,'add user']
+        
+        
         self.data = notsql.load()
         self.searchterm = ['',['name']]
         self.data = notsql.load()
@@ -208,7 +247,7 @@ class MAIN:
         self.empty = completedata({})
         self.shiftingitems = []
         yinc = 70
-        self.checkboxes = {'Pronouns':['She/Her','He/Him','They/Them','textbox'],'Driving license':['Yes','No'],'Owns Vehicle':['Yes','No'],'Interested in volunteer driving':['Yes','No'],'Disability?':['Yes','No'],'Staff':['Yes','No'],'Emergency Contacts':['button']}
+        self.checkboxes = {'Pronouns':['She/Her','He/Him','They/Them','textbox'],'Driving license':['Yes','No'],'Owns Vehicle':['Yes','No'],'Interested in volunteer driving':['Yes','No'],'Disability?':['Yes','No'],'Staff':['Yes','No'],'Emergency Contacts':['button','view']}
         for i,a in enumerate(self.empty):
             if a != 'ID':
                 ui.maketext(30,yinc,a,35,'add user',ID='add user'+a,maxwidth=200,backingcol=basecol)
@@ -218,8 +257,8 @@ class MAIN:
                     disper = 540/len(self.checkboxes[a])
                     exclusive = ['add user checkbox'+a+'*'+b for b in self.checkboxes[a] if b!='textbox']
                     for b in self.checkboxes[a]:
-                        if not(b in ['textbox','button']):
-                            ui.maketext(xinc,yinc+h/2,b,30,'add user',ID='add user'+a+'*'+b,objanchor=(0,'h/2'))
+                        if not(b in ['textbox','button','view']):
+                            ui.maketext(xinc,yinc+h/2,b,30,'add user',ID='add user'+a+'*'+b,objanchor=(0,'h/2'),backingcol=basecol)
                             xinc+=ui.IDs['add user'+a+'*'+b].width+10
                             ui.makecheckbox(xinc,yinc+h/2,40,menu='add user',ID='add user checkbox'+a+'*'+b,objanchor=(0,'h/2'),spacing=-8,clickdownsize=2,toggle=False,bindtoggle=exclusive)
                             if a == 'Pronouns': xinc+=ui.IDs['add user checkbox'+a+'*'+b].width+10
@@ -231,7 +270,10 @@ class MAIN:
                             ui.maketextbox(xinc,yinc,'',133,height=h,menu='add user',ID='add user inp'+a+'*'+b,textsize=32)
                             self.shiftingitems.append('add user inp'+a+'*'+b)
                         elif b == 'button':
-                            ui.makebutton(xinc,yinc,'Add Emergency Contact',32,command=lambda: ui.movemenu('add contact','down'),width=200,height=h,menu='add user',ID='add user button'+a+'*'+b,roundedcorners=6,clickdownsize=2)
+                            ui.makebutton(xinc,yinc,'Add Emergency Contact',32,command=lambda: self.newcontact(['New',-1,-1,'add user']),width=200,height=h,menu='add user',ID='add user button'+a+'*'+b,roundedcorners=6,clickdownsize=2)
+                            self.shiftingitems.append('add user button'+a+'*'+b)
+                        elif b == 'view':
+                            ui.makebutton(xinc+210,yinc,'View Emergency Contacts',32,command=lambda: self.viewcontact(['Add',-1,-1,'add user']),width=200,height=h,menu='add user',ID='add user button'+a+'*'+b,roundedcorners=6,clickdownsize=2)
                             self.shiftingitems.append('add user button'+a+'*'+b)
                 else:
                     ui.maketextbox(240,yinc,'',540,height=h,menu='add user',ID='add user inp'+a,textsize=32,spacing=1)
@@ -251,11 +293,24 @@ class MAIN:
             ui.IDs[a].truestarty = ui.IDs[a].starty
 
         ## emergency contacts
-        ui.makewindowedmenu(60,60,680,300,'add contact','add user',basecol,roundedcorners=10,scaley=True)
-        ui.maketext(340,10,'Add Emergency Contact',40,'add contact',backingcol=basecol,objanchor=('w/2',0))
+        ui.makewindowedmenu(60,60,680,341,'add contact','add user',basecol,roundedcorners=10,scaley=True,ID='add contacts menu')
+        ui.maketext(340,10,'Add Emergency Contact',40,'add contact',backingcol=basecol,objanchor=('w/2',0),ID='add contacts title')
+        self.contactinfo = list(completecontactdata())
+        yinc = 55
+        for item in self.contactinfo:
+            ui.maketext(10,yinc,item,34,'add contact',backingcol=basecol)
+            ui.maketextbox(200,yinc,'',460,1,'add contact',textsize=32,ID='add contact'+item)
+            yinc+=49
+        ui.makebutton(420,yinc-12,'Save',34,self.saveemergencycontact,'add contact',objanchor=('w/2',0),verticalspacing=4,roundedcorners=5,clickdownsize=2)
+        ui.makebutton(260,yinc-12,'Clear',34,self.clearcontactmenu,'add contact',objanchor=('w/2',0),verticalspacing=4,roundedcorners=5,clickdownsize=2)
 
-        ui.maketext(10,55,'Name',34,'add contact',backingcol=basecol)
-        ui.maketextbox(90,55,'',570,1,'add contact',textsize=32)
+        # view emergency contacts
+        ui.makewindowedmenu(60,60,680,335,'view contact','add user',basecol,roundedcorners=10,scaley=True,ID='view contacts')
+        ui.maketable(10,10,[],['Name','',''],'view contact',ID='view contacts menu',col=basecol,roundedcorners=4,verticalspacing=3,textsize=30,boxwidth=[545,80,27],boxheight=27)
+        ui.makebutton(12,12,'+',40,lambda: self.newcontact(-1),'view contact',col=basecol,roundedcorners=4,clickdownsize=1,border=2,layer=2,width=27,height=27,textoffsety=-1)
+        self.refreshcontactstable()
+        
+        
         
     def generatemenus(self):
         for a in self.menus:
@@ -271,7 +326,7 @@ class MAIN:
         data = []
         for a in range(len(displaydata)):
             func = funcmn(displaydata[a]['ID'],self)
-            obj = ui.makebutton(0,0,'{dots}',30,func.func,roundedcorners=4,clickdownsize=2)
+            obj = ui.makebutton(0,0,'{dots}',30,func.func,roundedcorners=4,clickdownsize=2,clickablerect=pygame.Rect(0,54,4000,4000))
             data.append([displaydata[a]['ID'],displaydata[a]['Forename']+' '+displaydata[a]['Surname'],obj])
 
         sc = ui.IDs['main scroller']
@@ -282,6 +337,92 @@ class MAIN:
         
         ui.IDs['main table'].data = data
         ui.IDs['main table'].refresh(ui)
+        
+    def newcontact(self,contactmenuuse):
+        if contactmenuuse == -1:
+            if self.contactmenuuse[3] == 'add user': contactmenuuse = ['New',-1,-1,self.contactmenuuse[3]]
+            else: contactmenuuse = ['Add',-1,-1,self.contactmenuuse[3]]
+        ui.IDs['add contacts menu'].behindmenu = contactmenuuse[3]
+        ui.IDs['view contacts'].behindmenu = contactmenuuse[3]
+        self.contactmenuuse = contactmenuuse
+        ui.movemenu('add contact','down')
+        self.refreshcontactstable()
+    def viewcontact(self,contactmenuuse):
+        ui.IDs['add contacts menu'].behindmenu = contactmenuuse[3]
+        ui.IDs['view contacts'].behindmenu = contactmenuuse[3]
+        self.contactmenuuse = contactmenuuse
+        self.refreshcontactstable()
+        ui.movemenu('view contact','down')
+    def editcontact(self,contactmenuuse):
+        ui.IDs['add contacts menu'].behindmenu = contactmenuuse[3]
+        ui.IDs['view contacts'].behindmenu = contactmenuuse[3]
+        self.contactmenuuse = contactmenuuse
+        items = list(completecontactdata())
+        ids = ['add contact'+a for a in items]
+        for a in range(len(ids)):
+            if contactmenuuse[3] == 'add user':
+                ui.IDs[ids[a]].text = self.newusercontacts[contactmenuuse[1]][items[a]]
+            else:
+                ui.IDs[ids[a]].text = self.data[contactmenuuse[2]]['Emergency Contacts'][contactmenuuse[1]][items[a]]
+            ui.IDs[ids[a]].refresh(ui)
+            
+        ui.movemenu('add contact','down')
+        self.refreshcontactstable()
+    def deletecontact(self,contactmenuuse):
+        self.contactmenuuse = contactmenuuse
+        if self.contactmenuuse[3] == 'add user':
+            del self.newusercontacts[self.contactmenuuse[1]]
+        else:
+            del self.data[self.contactmenuuse[2]]['Emergency Contacts'][self.contactmenuuse[1]]
+        self.menus[self.contactmenuuse[2]].refreshtable()
+        self.refreshcontactstable()
+    def clearcontactmenu(self):
+        ids = ['add contact'+a for a in list(completecontactdata())]
+        for a in range(len(ids)):
+            ui.IDs[ids[a]].text = ''
+            ui.IDs[ids[a]].refresh(ui)
+        
+    def refreshcontactstable(self):
+        ui.IDs['view contacts menu'].wipe(ui,False)
+        data = []
+        contactinfo = copy.deepcopy(self.newusercontacts)
+        if self.contactmenuuse[3] != 'add user':
+            contactinfo = copy.deepcopy(self.menus[self.contactmenuuse[2]].data['Emergency Contacts'])
+        for i,a in enumerate(contactinfo):
+            if self.contactmenuuse[3]!='add user': func = funcec(['Edit',i,self.contactmenuuse[2],ui.IDs['view contacts'].behindmenu])
+            else: func = funcec(['Edit',i,-1,'add user'])
+            editbutton = ui.makebutton(0,0,'{dots}',30,func.func,'view contact',roundedcorners=4,col=basecol,clickdownsize=1)
+            if self.contactmenuuse[3]!='add user': func = funcdc(['Edit',i,self.contactmenuuse[2],ui.IDs['view contacts'].behindmenu])
+            else: func = funcdc(['Edit',i,-1,'add user'])
+            crossbutton = ui.makebutton(0,0,'{cross}',17,func.func,'view contact',roundedcorners=4,col=basecol,clickdownsize=1,textoffsetx=1,textoffsety=1)
+            data.append([a['Name'],editbutton,crossbutton])
+        ui.IDs['view contacts menu'].data = data
+        ui.IDs['view contacts menu'].boxheight = 27
+        ui.IDs['view contacts menu'].refresh(ui)
+        ui.IDs['add contacts title'].text = self.contactmenuuse[0]+' Emergency Contact'
+        ui.IDs['add contacts title'].refresh(ui)
+    def saveemergencycontact(self):
+        items = list(completecontactdata())
+        ids = ['add contact'+a for a in items]
+        data = {}
+        for i,a in enumerate(ids):
+            data[items[i]] = ui.IDs[a].text
+        if self.contactmenuuse[0] == 'Add':
+            self.data[self.contactmenuuse[2]]['Emergency Contacts'].append(data)
+            self.menus[self.contactmenuuse[2]].refreshtable()
+            notsql.store(self.data)
+        elif self.contactmenuuse[0] == 'New':
+            self.newusercontacts.append(data)
+        elif self.contactmenuuse[0] == 'Edit':
+            if self.contactmenuuse[3]!='add user':
+                self.data[self.contactmenuuse[2]]['Emergency Contacts'][self.contactmenuuse[1]] = data
+                self.menus[self.contactmenuuse[2]].refreshtable()
+                notsql.store(self.data)
+            else:
+                self.newusercontacts[self.contactmenuuse[1]] = data
+        self.refreshcontactstable()
+        ui.menuback()
+    
     def slidetable(self):
         ui.IDs['main table'].y = 60-ui.IDs['main scroller'].scroll
         ui.IDs['main table'].refreshcords(ui)
@@ -303,8 +444,9 @@ class MAIN:
             if type(ui.IDs[a]) == pyui.TEXTBOX:
                 ui.IDs[a].text = ''
                 ui.IDs[a].refresh(ui)
-            elif type(ui.IDs[a]) == pyui.BUTTON:
+            elif type(ui.IDs[a]) == pyui.BUTTON and ui.IDs[a].toggleable: 
                 ui.IDs[a].toggle = False
+        self.newusercontacts = []
     def saveuser(self):
         data = {'ID':len(self.data)+1}
         empty = completedata({})
@@ -319,10 +461,10 @@ class MAIN:
             if type(ui.IDs[a]) == pyui.BUTTON:
                 temp = a.removeprefix('add user checkbox')
                 items = temp.split('*')
-                if ui.IDs[a].toggle:
+                if ui.IDs[a].toggle and ui.IDs[a].toggleable:
                     data[items[0]] = ui.IDs[a].storeddata
                 
-                
+        data['Emergency Contacts'] = self.newusercontacts
         self.data.append(completedata(data))
         notsql.store(self.data)
         self.refreshtable()
@@ -374,8 +516,9 @@ class MAIN:
         ui.IDs['main scroller'].refresh(ui)
         ui.IDs['main table'].boxwidth = [100,(screenw-8-20-200),100]
         self.refreshtable()
-        
+     
 main = MAIN()
+main.init()
 
 
 while not done:
@@ -390,6 +533,35 @@ while not done:
             if 'info' in ui.activemenu:
                 main.menus[main.menuin].reshiftgui()
                 main.menus[main.menuin].refreshtable()
+        if event.type == pygame.KEYDOWN:
+            if (event.key == pygame.K_RETURN or event.key == pygame.K_DOWN or event.key == pygame.K_UP) and not(ui.kprs[pygame.K_LSHIFT]):
+                dirr = 1
+                if event.key == pygame.K_UP:
+                    dirr = -1
+                data = list(completedata({}))
+                if ui.selectedtextbox != -1:
+                    ID = ui.textboxes[ui.selectedtextbox].ID
+                    if ('add user inp' in ID) or ('add contact' in ID):
+                        if 'add contact' in ID:
+                            data = main.contactinfo
+                            prefix = 'add contact'
+                        else:
+                            prefix = 'add user inp'
+                        item = ID.removeprefix(prefix)
+                        if item in data and (data.index(item)!=len(data)-1 or dirr == -1):
+                            ui.IDs[ID].selected = False
+                            newID = prefix+data[data.index(item)+dirr]
+                            inc = dirr*2
+                            while not(newID in ui.IDs):
+                                newID = prefix+data[data.index(item)+inc]
+                                inc+=dirr
+                                if data.index(item)+inc == len(data):
+                                    newID = ID
+                                    break
+                        ui.IDs[ID].selected = False
+                        ui.IDs[newID].selected = True
+                        ui.selectedtextbox = [a.ID for a in ui.textboxes].index(newID)
+                            
     screen.fill(basecol)
     ui.rendergui(screen)
     pygame.display.flip()
