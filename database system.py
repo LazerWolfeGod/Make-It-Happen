@@ -100,6 +100,7 @@ class ITEM:
     def __init__(self,data,main):
         self.data = data
         self.menu = 'info'+str(self.data['ID'])
+        
         self.makegui(main)
     def makegui(self,main):
         ## main
@@ -202,11 +203,12 @@ class MAIN:
         ui.makebutton(-80,25,'Add User',30,self.adduser,anchor=('w','0'),objanchor=('w','h/2'),roundedcorners=10,verticalspacing=4,clickdownsize=2,scalesize=False,col=basecol,menu='table',layer=3)
         ui.makebutton(-10,25,'Back',30,ui.menuback,anchor=('w','0'),objanchor=('w','h/2'),roundedcorners=10,verticalspacing=4,clickdownsize=2,scalesize=False,col=basecol,menu='table',layer=3)
 
+
         ## add user menu
         self.empty = completedata({})
         self.shiftingitems = []
         yinc = 70
-        self.checkboxes = {'Pronouns':['She/Her','He/Him','They/Them','textbox'],'Driving license':['Yes','No'],'Owns Vehicle':['Yes','No'],'Interested in volunteer driving':['Yes','No'],'Disability?':['Yes','No'],'Staff':['Yes','No']}
+        self.checkboxes = {'Pronouns':['She/Her','He/Him','They/Them','textbox'],'Driving license':['Yes','No'],'Owns Vehicle':['Yes','No'],'Interested in volunteer driving':['Yes','No'],'Disability?':['Yes','No'],'Staff':['Yes','No'],'Emergency Contacts':['button']}
         for i,a in enumerate(self.empty):
             if a != 'ID':
                 ui.maketext(30,yinc,a,35,'add user',ID='add user'+a,maxwidth=200,backingcol=basecol)
@@ -216,7 +218,7 @@ class MAIN:
                     disper = 540/len(self.checkboxes[a])
                     exclusive = ['add user checkbox'+a+'*'+b for b in self.checkboxes[a] if b!='textbox']
                     for b in self.checkboxes[a]:
-                        if b != 'textbox':
+                        if not(b in ['textbox','button']):
                             ui.maketext(xinc,yinc+h/2,b,30,'add user',ID='add user'+a+'*'+b,objanchor=(0,'h/2'))
                             xinc+=ui.IDs['add user'+a+'*'+b].width+10
                             ui.makecheckbox(xinc,yinc+h/2,40,menu='add user',ID='add user checkbox'+a+'*'+b,objanchor=(0,'h/2'),spacing=-8,clickdownsize=2,toggle=False,bindtoggle=exclusive)
@@ -225,9 +227,12 @@ class MAIN:
                             ui.IDs['add user checkbox'+a+'*'+b].storeddata = b
                             self.shiftingitems.append('add user'+a+'*'+b)
                             self.shiftingitems.append('add user checkbox'+a+'*'+b)
-                        else:
+                        elif b == 'textbox':
                             ui.maketextbox(xinc,yinc,'',133,height=h,menu='add user',ID='add user inp'+a+'*'+b,textsize=32)
                             self.shiftingitems.append('add user inp'+a+'*'+b)
+                        elif b == 'button':
+                            ui.makebutton(xinc,yinc,'Add Emergency Contact',32,command=lambda: ui.movemenu('add contact','down'),width=200,height=h,menu='add user',ID='add user button'+a+'*'+b,roundedcorners=6,clickdownsize=2)
+                            self.shiftingitems.append('add user button'+a+'*'+b)
                 else:
                     ui.maketextbox(240,yinc,'',540,height=h,menu='add user',ID='add user inp'+a,textsize=32,spacing=1)
                     self.shiftingitems.append('add user inp'+a)
@@ -244,6 +249,13 @@ class MAIN:
 
         for a in self.shiftingitems:
             ui.IDs[a].truestarty = ui.IDs[a].starty
+
+        ## emergency contacts
+        ui.makewindowedmenu(60,60,680,300,'add contact','add user',basecol,roundedcorners=10,scaley=True)
+        ui.maketext(340,10,'Add Emergency Contact',40,'add contact',backingcol=basecol,objanchor=('w/2',0))
+
+        ui.maketext(10,55,'Name',34,'add contact',backingcol=basecol)
+        ui.maketextbox(90,55,'',570,1,'add contact',textsize=32)
         
     def generatemenus(self):
         for a in self.menus:
