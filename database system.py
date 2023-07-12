@@ -13,7 +13,7 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
-logo = pygame.image.load(resource_path('make it happen white small.png'))
+logo = pygame.image.load(resource_path('images\\make it happen white small.png'))
 logo.set_colorkey((255,255,255))
 pygame.display.set_icon(logo)
 screen = pygame.display.set_mode((screenw, screenh),pygame.RESIZABLE)
@@ -97,8 +97,8 @@ class notsql:
 
 def completedata(data):
     allitems = ['Forename','Surname','Pronouns','Title','Birth Date','Address','Postcode','Home Telephone','Work Telephone','Mobile Number',
-                'Email','Driving License','Owns Vehicle','Interested in volunteer driving','Days can work','Hours available per day',
-                'Times unable to complete work','Disability?','Emergency Contacts','Special Needs','Date Started','Active','Staff','ID']
+                'Email','Driving License','Owns Vehicle and has Relevant Documents','Interested in volunteer driving','Days can work','Hours available per day',
+                'Times unable to complete work','Disability?','Emergency Contacts','Reasonable Adjustments','Date Started','Active','Staff','ID']
     processed = {}
     for a in allitems:
         if not(a in data):
@@ -131,12 +131,100 @@ def searchdata(data,searchterm):
                 break
     return ndata
 
-     
+class dummytextbox:
+    def __init__(self):
+        self.text = ''
+        self.enabled = False
+    def refresh(self,ui):
+        pass
+
+class EDITINFO:
+    def __init__(self,item,data,menu,master):
+        self.item = item
+        self.data = data
+        self.menu = menu+item
+        self.master = master
+        self.editbox = dummytextbox()
+        self.makegui()
+    def makegui(self):
+        ui.makewindowedmenu(10,10,400,140,self.menu,self.menu.removesuffix(self.item),basecol,roundedcorners=8,scalesize=False,scalex=False,scaley=False,ID=self.menu+'window')
+        self.titlewidth = 184
+        self.textboxstart = 193
+        self.checkboxes = {}
+        if not self.item in list(main.checkboxes):
+            ui.maketable(5,5,[[self.lineitem(self.item),ui.maketextbox(0,0,'',200,2,self.menu,roundedcorners=4,height=80,textsize=30,verticalspacing=4,scalesize=False)]],menu=self.menu,roundedcorners=4,boxwidth=[-1,200],boxheight=80,textsize=35,scalesize=False,scalex=False,scaley=False,col=basecol,ID=self.menu+'editbox')
+            ui.makebutton(10,115,'Save',40,self.master.saveedited,self.menu,scalesize=False,scalex=False,scaley=False,roundedcorners=10,verticalspacing=3,objanchor=(0,'h/2'),ID=self.menu+'save')
+            self.editbox = ui.IDs[self.menu+'editbox'].tableimages[0][1][1]
+            self.textboxstart = ui.IDs[self.menu+'editbox'].boxwidths[0]+14
+        else:
+            ui.maketable(5,5,[[self.lineitem(self.item),'']],menu=self.menu,roundedcorners=4,boxwidth=[-1,200],boxheight=80,textsize=35,scalesize=False,scalex=False,scaley=False,col=basecol,ID=self.menu+'editbox',layer=0)
+            ui.makebutton(10,115,'Save',40,self.master.saveedited,self.menu,scalesize=False,scalex=False,scaley=False,roundedcorners=10,verticalspacing=3,objanchor=(0,'h/2'),ID=self.menu+'save')
+            xinc = ui.IDs[self.menu+'editbox'].boxwidths[0]+20
+            exclusive = [self.menu+'checkbox'+b for b in main.checkboxes[self.item] if b!='textbox']
+            for b in main.checkboxes[self.item]:
+                if not(b in ['textbox','button','view']):
+                    ui.maketext(xinc,45,b,30,self.menu,ID=self.menu+b,objanchor=(0,'h/2'),backingcol=basecol,scalesize=False)
+                    xinc+=ui.IDs[self.menu+b].width+10
+                    self.checkboxes[b] = ui.makecheckbox(xinc,45,40,self.seteditbox,menu=self.menu,ID=self.menu+'checkbox'+b,objanchor=(0,'h/2'),spacing=-8,clickdownsize=2,toggle=False,bindtoggle=exclusive,scalesize=False)
+                    if self.item in ['Pronouns','Postcode']: xinc+=ui.IDs[self.menu+'checkbox'+b].width+10
+                    else: xinc+=ui.IDs[self.menu+'checkbox'+b].width+40
+                    ui.IDs[self.menu+'checkbox'+b].storeddata = b 
+                elif b == 'textbox':
+                    self.editbox = ui.maketextbox(xinc,7,'',100,height=80,command=self.updatecheckboxes,menu=self.menu,ID=self.menu+'editbox',textsize=32,scalesize=False,commandifkey=True)
+            self.textboxstart = xinc
+        self.titlewidth = ui.IDs[self.menu+'editbox'].boxwidths[0]
+        self.reshiftgui()
+    def seteditbox(self):
+        enabled = -1
+        for a in self.checkboxes:
+            if self.checkboxes[a].toggle:
+                enabled = a
+        if enabled != -1:
+            self.editbox.text = enabled
+            self.editbox.refresh(ui)
+    def updatecheckboxes(self):
+        text = self.editbox.text.lower()
+        boxes = [a.lower() for a in list(self.checkboxes)]
+        for i,a in enumerate(self.checkboxes):
+            if text == boxes[i]:
+                self.checkboxes[a].toggle = True
+            else:
+                self.checkboxes[a].toggle = False
+        
+        
+    def lineitem(self,item):
+        split = self.item.split()
+        st = ''
+        for i,a in enumerate(split):
+            st+=a
+            if i!=len(split)-1:
+                if i in [1,4] or (self.item == 'Reasonable Adjustments' and i == 0):
+                    st+='\n'
+                else:
+                    st+=' '
+        return st
+    def refreshmenu(self):
+        if self.editbox.enabled:
+            self.editbox.selected = True
+            ui.selectedtextbox = ui.textboxes.index(self.editbox)
+    def reshiftgui(self):
+        if self.editbox.enabled:
+            ui.IDs[self.menu+'window'].width = screenw-20
+            self.editbox.width = screenw-32-self.textboxstart
+            self.editbox.refresh(ui)
+            ui.IDs[self.menu+'editbox'].boxwidth = [self.titlewidth,screenw-42-self.titlewidth]
+            ui.IDs[self.menu+'editbox'].refresh(ui)
+        else:
+            ui.IDs[self.menu+'window'].width = self.textboxstart+12
+            ui.IDs[self.menu+'editbox'].boxwidth = [self.titlewidth,self.textboxstart-self.titlewidth-14]
+            ui.IDs[self.menu+'editbox'].refresh(ui)
+    
 
 class ITEM:
     def __init__(self,data,main):
         self.data = data
         self.menu = 'info'+str(self.data['ID'])
+        self.menus = []
         
         self.makegui(main)
     def makegui(self,main):
@@ -148,14 +236,12 @@ class ITEM:
         ui.makerect(0,50,screenw,4,menu=self.menu,layer=2,scalesize=False,col=(80,150,160),ID=self.menu+'rect2')
         ui.maketable(0,0,[],[ui.maketext(0,0,'Item',45,self.menu,roundedcorners=4,col=(83,84,100),textcenter=True),
                              ui.maketext(0,0,'Info',45,self.menu,roundedcorners=4,col=(83,84,100),textcenter=True),
-                             ui.maketext(0,0,'Edit',45,self.menu,roundedcorners=4,col=(83,84,100),textcenter=True)],self.menu,self.menu+'table',roundedcorners=4,textcenter=False,verticalspacing=4,textsize=30,boxwidth=[200,200,100],anchor=(10,60),col=basecol,scalesize=False,scalex=False,scaley=False)
+                             ui.maketext(0,0,'Edit',45,self.menu,roundedcorners=4,col=(83,84,100),textcenter=True)],self.menu,self.menu+'table',roundedcorners=4,textcenter=False,verticalspacing=4,textsize=30,boxwidth=[200,200,100],anchor=(10,60),col=basecol,scalesize=False,scalex=False,scaley=False,clickablerect=pygame.Rect(0,54,4000,4000))
         ui.makescroller(0,0,screenh-60,self.slidetable,pageheight=screenh-60,anchor=('w',60),objanchor=('w',0),scalesize=False,menu=self.menu,ID=self.menu+'scroller',runcommandat=1,layer=0)
         self.refreshtable()
 
         ## edit menu
-        ui.makewindowedmenu(10,10,400,140,self.menu+'edit',self.menu,basecol,roundedcorners=8,scalesize=False,scalex=False,scaley=False,ID=self.menu+'window')
-        ui.maketable(5,5,[['Item',ui.maketextbox(0,0,'',200,2,self.menu+'edit',roundedcorners=4,height=80,textsize=30,verticalspacing=4,scalesize=False)]],menu=self.menu+'edit',roundedcorners=4,boxwidth=[184,200],boxheight=80,textsize=35,scalesize=False,scalex=False,scaley=False,col=basecol,ID=self.menu+'editbox')
-        ui.makebutton(200,115,'Save',40,self.saveedited,self.menu+'edit',scalesize=False,scalex=False,scaley=False,roundedcorners=10,verticalspacing=3,center=True,ID=self.menu+'save')
+        self.menus = {a:EDITINFO(a,self.data[a],self.menu,self) for a in list(self.data)}
     def refreshtable(self):
         ui.IDs[self.menu+'table'].wipe(ui,False)
         data = []
@@ -168,7 +254,7 @@ class ITEM:
                 else:
                     func = funcem(a,self)
                     func = func.func
-                obj = ui.makebutton(0,0,'{dots}',30,func,roundedcorners=4,clickdownsize=2)
+                obj = ui.makebutton(0,0,'{dots}',30,func,roundedcorners=4,clickdownsize=2,clickablerect=pygame.Rect(0,54,4000,4000))
             if type(self.data[a]) == list:
                 st = ''
                 for b in self.data[a]:
@@ -196,22 +282,15 @@ class ITEM:
         ui.IDs[self.menu+'scroller'].pageheight = screenh-60
         ui.IDs[self.menu+'scroller'].maxp = ui.IDs[self.menu+'table'].height
         ui.IDs[self.menu+'scroller'].refresh(ui)
-        if self.menu+'window' in ui.IDs:
-            ui.IDs[self.menu+'editbox'].boxwidth = [184,screenw-36-184]
-            ui.IDs[self.menu+'editbox'].refresh(ui)
-            ui.IDs[self.menu+'window'].width = screenw-10
+        if self.menus != []:
+            for a in self.menus:
+                self.menus[a].reshiftgui()
     def editmenu(self,item):
         self.selected = item
-        ui.IDs[self.menu+'editbox'].wipe(ui,True)
-        ui.IDs[self.menu+'editbox'].data = [[item,ui.maketextbox(0,0,str(self.data[item]),500,2,self.menu+'edit',roundedcorners=4,height=80,textsize=30,verticalspacing=4,command=self.saveedited,commandifenter=True,scalesize=False)]]
-        ui.IDs[self.menu+'editbox'].refresh(ui)
-        ui.IDs[self.menu+'editbox'].refreshcords(ui)
-        ui.IDs[self.menu+'table'].refreshcords(ui)
-        ui.IDs[self.menu+'editbox'].tableimages[0][1][1].selected = True
-        ui.selectedtextbox = ui.textboxes.index(ui.IDs[self.menu+'editbox'].tableimages[0][1][1])
-        ui.movemenu(self.menu+'edit','down')
+        self.menus[self.selected].refreshmenu()
+        ui.movemenu(self.menu+self.selected,'down')
     def saveedited(self):
-        self.data[self.selected] = ui.IDs[self.menu+'editbox'].data[0][1].text
+        self.data[self.selected] = self.menus[self.selected].editbox.text #ui.IDs[self.menu+self.selected+'editbox'].data[0][1].text
         main.refreshdata()
         self.refreshtable()
         ui.menuback()
@@ -225,6 +304,8 @@ class MAIN:
         self.newusercontacts = []
         #display contactID userID menu
         self.contactmenuuse = ['Add',0,-1,'add user']
+        self.checkboxes = {'Pronouns':['She/Her','He/Him','They/Them','textbox'],'Postcode':['CH41-43','CH44/45','CH46-49','CH60-64','textbox'],'Driving license':['Yes','No'],'Owns Vehicle and has Relevant Documents':['Yes','No'],'Interested in volunteer driving':['Yes','No'],'Disability?':['Yes','No'],'Staff':['Yes','No'],'Emergency Contacts':['button','view'],'Active':['Yes','No']}
+
         
         
         self.data = notsql.load()
@@ -236,13 +317,13 @@ class MAIN:
         self.makegui()
     def makegui(self):
         ## title screen
-        ui.maketext(0,0,'',250,anchor=('w/2','0'),objanchor=('w/2','0'),img=pygame.image.load(resource_path('make it happen.png')),colorkey=(251,251,251))
+        ui.maketext(0,0,'',250,anchor=('w/2','0'),objanchor=('w/2','0'),img=pygame.image.load(resource_path('images\\make it happen.png')),colorkey=(251,251,251))
         ui.makebutton(0,270,'Users',50,lambda: ui.movemenu('table','up'),roundedcorners=10,clickdownsize=2,verticalspacing=4,anchor=('w/2','0'),objanchor=('w/2',0))
         ui.makebutton(0,330,'Add User',50,self.adduser,anchor=('w/2','0'),objanchor=('w/2',0),roundedcorners=10,verticalspacing=4,clickdownsize=2,scalex=False,scaley=False)
         
         
         ## main table
-        ui.maketable(0,0,[],['ID','Name','More'],anchor=(10,60),boxwidth=[100,300,100],verticalspacing=5,textsize=30,roundedcorners=4,col=basecol,ID='main table',menu='table',scalesize=False)
+        ui.maketable(0,0,[],['ID','Name','More'],anchor=(10,60),boxwidth=[100,300,100],verticalspacing=5,textsize=30,roundedcorners=4,col=basecol,ID='main table',menu='table',scalesize=False,clickablerect=pygame.Rect(0,54,4000,4000))
         ui.makescroller(0,0,screenh-60,self.slidetable,pageheight=screenh-60,anchor=('w',60),objanchor=('w',0),scalesize=False,menu='table',ID='main scroller',runcommandat=1,layer=0)
         self.refreshtable()
 
@@ -261,7 +342,6 @@ class MAIN:
         self.empty = completedata({})
         self.shiftingitems = []
         yinc = 70
-        self.checkboxes = {'Pronouns':['She/Her','He/Him','They/Them','textbox'],'Driving license':['Yes','No'],'Owns Vehicle':['Yes','No'],'Interested in volunteer driving':['Yes','No'],'Disability?':['Yes','No'],'Staff':['Yes','No'],'Emergency Contacts':['button','view']}
         for i,a in enumerate(self.empty):
             if a != 'ID':
                 ui.maketext(30,yinc,a,35,'add user',ID='add user'+a,maxwidth=200,backingcol=basecol)
@@ -275,12 +355,12 @@ class MAIN:
                             ui.maketext(xinc,yinc+h/2,b,30,'add user',ID='add user'+a+'*'+b,objanchor=(0,'h/2'),backingcol=basecol)
                             xinc+=ui.IDs['add user'+a+'*'+b].width+10
                             ui.makecheckbox(xinc,yinc+h/2,40,menu='add user',ID='add user checkbox'+a+'*'+b,objanchor=(0,'h/2'),spacing=-8,clickdownsize=2,toggle=False,bindtoggle=exclusive)
-                            if a == 'Pronouns': xinc+=ui.IDs['add user checkbox'+a+'*'+b].width+10
+                            if a in ['Pronouns','Postcode']: xinc+=ui.IDs['add user checkbox'+a+'*'+b].width+10
                             else: xinc+=ui.IDs['add user checkbox'+a+'*'+b].width+40
                             ui.IDs['add user checkbox'+a+'*'+b].storeddata = b
                             self.shiftingitems.append('add user'+a+'*'+b)
                             self.shiftingitems.append('add user checkbox'+a+'*'+b)
-                        elif b == 'textbox':
+                        elif b == 'textbox' and a!='Postcode':
                             ui.maketextbox(xinc,yinc,'',133,height=h,menu='add user',ID='add user inp'+a+'*'+b,textsize=32)
                             self.shiftingitems.append('add user inp'+a+'*'+b)
                         elif b == 'button':
@@ -340,13 +420,18 @@ class MAIN:
             
     def refreshtable(self):
         displaydata = searchdata(self.data,self.searchterm)
+        encode = {'Yes':0,'':1,'No':2}
+        cols = {0:'(220,220,240)',1:'(150,150,160)',2:'(250,100,100)'}
+        for a in range(len(displaydata)):
+            displaydata[a]['encoded'] = encode[displaydata[a]['Active']]
+        displaydata.sort(key=lambda x: x['encoded'])
         
         ui.IDs['main table'].wipe(ui,False)
         data = []
         for a in range(len(displaydata)):
             func = funcmn(displaydata[a]['ID'],self)
             obj = ui.makebutton(0,0,'{dots}',30,func.func,roundedcorners=4,clickdownsize=2,clickablerect=pygame.Rect(0,54,4000,4000))
-            data.append([displaydata[a]['ID'],displaydata[a]['Forename']+' '+displaydata[a]['Surname'],obj])
+            data.append([displaydata[a]['ID'],'{"'+displaydata[a]['Forename']+' '+displaydata[a]['Surname']+'"'+cols[displaydata[a]['encoded']]+'}',obj])
 
         sc = ui.IDs['main scroller']
         if (sc.maxp-sc.minp)>sc.pageheight:
@@ -553,9 +638,9 @@ while not done:
     for event in pygameeventget:
         if event.type == pygame.QUIT:
             done = True
-        if event.type == pygame.VIDEORESIZE:
-            screenw = event.w
-            screenh = event.h
+        if event.type == pygame.VIDEORESIZE or (event.type == pygame.KEYDOWN and event.key == pygame.K_F5):
+            screenw = ui.screenw
+            screenh = ui.screenh
             main.reshiftgui()
             if 'info' in ui.activemenu:
                 main.menus[main.menuin].reshiftgui()
