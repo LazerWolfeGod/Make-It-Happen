@@ -1,8 +1,21 @@
-mport pygame,math,random,sys,os,copy
+import pygame,math,random,sys,os,copy
 import PyUI as pyui
 pygame.init()
 screenw = 800
 screenh = 600
+
+def resource_path(relative_path):
+    try:
+    # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
+logo = pygame.image.load(resource_path('make it happen white small.png'))
+logo.set_colorkey((255,255,255))
+pygame.display.set_icon(logo)
 screen = pygame.display.set_mode((screenw, screenh),pygame.RESIZABLE)
 pygame.display.set_caption('Make it happen')
 pygame.scrap.init()
@@ -13,6 +26,7 @@ ui.defaultcol = (50,120,150)
 ui.defaulttextcol = (220,220,240)
 basecol = (63,65,75)
 ##basecol = (140,150,170)
+
 
 class funcmn:
     def __init__(self,param,main):
@@ -222,7 +236,7 @@ class MAIN:
         self.makegui()
     def makegui(self):
         ## title screen
-        ui.maketext(0,0,'',250,anchor=('w/2','0'),objanchor=('w/2','0'),img=pygame.image.load(pyui.resourcepath('make it happen.png')),colorkey=(251,251,251))
+        ui.maketext(0,0,'',250,anchor=('w/2','0'),objanchor=('w/2','0'),img=pygame.image.load(resource_path('make it happen.png')),colorkey=(251,251,251))
         ui.makebutton(0,270,'Users',50,lambda: ui.movemenu('table','up'),roundedcorners=10,clickdownsize=2,verticalspacing=4,anchor=('w/2','0'),objanchor=('w/2',0))
         ui.makebutton(0,330,'Add User',50,self.adduser,anchor=('w/2','0'),objanchor=('w/2',0),roundedcorners=10,verticalspacing=4,clickdownsize=2,scalex=False,scaley=False)
         
@@ -381,6 +395,7 @@ class MAIN:
             del self.data[self.contactmenuuse[2]]['Emergency Contacts'][self.contactmenuuse[1]]
         self.menus[self.contactmenuuse[2]].refreshtable()
         self.refreshcontactstable()
+        notsql.store(self.data)
     def clearcontactmenu(self):
         ids = ['add contact'+a for a in list(completecontactdata())]
         for a in range(len(ids)):
@@ -426,6 +441,7 @@ class MAIN:
             else:
                 self.newusercontacts[self.contactmenuuse[1]] = data
         self.refreshcontactstable()
+        self.clearcontactmenu()
         ui.menuback()
 
     def confirm(self,func):
@@ -474,11 +490,12 @@ class MAIN:
                 if ui.IDs[a].toggle and ui.IDs[a].toggleable:
                     data[items[0]] = ui.IDs[a].storeddata
                 
-        data['Emergency Contacts'] = self.newusercontacts
+        data['Emergency Contacts'] = copy.deepcopy(self.newusercontacts)
         self.data.append(completedata(data))
         notsql.store(self.data)
         self.refreshtable()
         self.menus.append(ITEM(completedata(data),self))
+        self.clearuser()
         ui.menuback()
     def deluser(self):
         notsql.store(self.data,'backup')
@@ -574,6 +591,7 @@ while not done:
                             
     screen.fill(basecol)
     ui.rendergui(screen)
+##    screen.blit(icon,(0,0))
     pygame.display.flip()
     clock.tick(60)                                               
 pygame.quit() 
