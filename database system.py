@@ -25,6 +25,7 @@ clock = pygame.time.Clock()
 ui.defaultcol = (50,120,150)
 ui.defaulttextcol = (220,220,240)
 basecol = (63,65,75)
+##ui.defaultanimationspeed = 2
 ##basecol = (140,150,170)
 
 
@@ -40,6 +41,12 @@ class funcec:
 class funcdc:
     def __init__(self,param):
         self.func = lambda: main.deletecontact(param)
+class funcef:
+    def __init__(self,param,form):
+        self.func = lambda: form.edititem(param)
+class funcdf:
+    def __init__(self,param,form):
+        self.func = lambda: form.deleteitem(param)
 
 class notsql:
     def load():
@@ -138,6 +145,68 @@ class dummytextbox:
     def refresh(self,ui):
         pass
 
+class FORM:
+    def __init__(self,typ,data,menu):
+        self.typ = typ
+        self.menu = menu
+        self.unqmenu = menu+typ
+        self.data = data
+        if self.typ == 'Expenses': self.fields = ['Date','Hours','Pay','Alternative']
+        else: self.fields = ['Date','Start Mileage','Collecting From','Number of Trays','Taken to','Close Mileage','Total Trip Mileage']
+        self.makegui()
+    def makegui(self):
+        ## list menu
+        ui.makewindowedmenu(105,60,589,340,self.unqmenu+'list',self.menu,basecol,roundedcorners=10,scaley=True,ID=self.menu+'list window')
+        if self.typ == 'Expenses': xpos = -214
+        else: xpos = -333
+        ui.makebutton(xpos,25,self.typ,30,lambda: ui.movemenu(self.unqmenu+'list','down'),self.menu,anchor=('w',0),objanchor=('w','h/2'),roundedcorners=10,verticalspacing=4,clickdownsize=2,scalesize=False,layer=3,col=basecol,ID=self.unqmenu+'button')
+
+        if self.typ == 'Expenses': self.table = ui.maketable(10,10,[],['Date','Hours','Pay','',''],self.unqmenu+'list',boxwidth=[150,150,150,80,27],boxheight=27,verticalspacing=5,textsize=30,roundedcorners=4,col=basecol)
+        else: self.table = ui.maketable(10,10,[],['Date','Mileage','',''],self.unqmenu+'list',boxwidth=[226,226,80,27],boxheight=27,verticalspacing=4,textsize=30,roundedcorners=4,col=basecol)
+        self.refreshtable()
+        
+        ui.makebutton(12,12,'+',40,self.additem,self.unqmenu+'list',col=basecol,roundedcorners=4,clickdownsize=1,border=2,layer=2,width=27,height=27,textoffsety=-2,textoffsetx=1)
+
+        ## edit menu
+        ui.makewindowedmenu(105,60,590,86+50*len(self.fields),self.unqmenu+'edit',self.menu,basecol,roundedcorners=10,scaley=True,ID=self.menu+'edit window')
+        ui.maketext(295,5,'Enter '+self.typ,40,self.unqmenu+'edit',self.unqmenu+'edit title',backingcol=basecol,objanchor=('w/2',0))
+        yinc = 45
+        xinc = 210
+        if self.typ == 'Expenses': xinc = 160
+        self.textboxes = {}
+        for a in self.fields:
+            ui.maketext(10,yinc,a,34,self.unqmenu+'edit',backingcol=basecol)
+            self.textboxes[a] = ui.maketextbox(xinc,yinc,'',580-xinc,menu=self.unqmenu+'edit',textsize=32)
+            yinc+=50
+        ui.makebutton(375,yinc-8,'Save',34,print,self.unqmenu+'edit',objanchor=('w/2',0),verticalspacing=4,roundedcorners=5,clickdownsize=2)
+        ui.makebutton(215,yinc-8,'Clear',34,self.clear,self.unqmenu+'edit',objanchor=('w/2',0),verticalspacing=4,roundedcorners=5,clickdownsize=2)
+
+    def refreshtable(self):
+        data = []
+        for i,a in enumerate(self.data):
+            func = funcef(i)
+            editbutton = ui.makebutton(0,0,'{dots}',30,func.func,self.unqmenu+'edit',roundedcorners=4,col=basecol,clickdownsize=1)
+            func = funcdf(i)
+            crossbutton = ui.makebutton(0,0,'{cross}',17,func.func,self.unqmenu+'edit',roundedcorners=4,col=basecol,clickdownsize=1,textoffsetx=1,textoffsety=1)
+            if self.typ == 'Expenses': data.append([a['Date'],a['Hours'],a['Pay'],editbutton,crossbutton])
+            else: data.append([a['Date'],a['Mileage'],editbutton,crossbutton])
+        self.table.data = data
+        self.table.refresh(ui)
+    
+    def additem(self):
+        ui.movemenu(self.unqmenu+'edit','down')
+    def edititem(self,index):
+        ui.movemenu(self.unqmenu+'edit','down')
+    def deleteitem(self,index):
+        print('del',index)
+        
+    def clear(self):
+        for a in self.textboxes:
+            self.textboxes[a].text = ''
+            self.textboxes[a].refresh(ui)
+
+
+        
 class EDITINFO:
     def __init__(self,item,data,menu,master):
         self.item = item
@@ -244,8 +313,11 @@ class ITEM:
         self.data = data
         self.menu = 'info'+str(self.data['ID'])
         self.menus = []
+        self.expensise = FORM('Expenses',[],self.menu)
+        self.mileage = FORM('Mileage',[],self.menu)
         
         self.makegui(main)
+        self.mileageupdate()
     def makegui(self,main):
         ## main
         ui.maketext(10,25,'Data for '+self.data['Forename'],40,self.menu,self.menu+'title',backingcol=(83,86,100),objanchor=(0,'h/2'),scalesize=False,layer=3)
@@ -309,10 +381,16 @@ class ITEM:
         self.menus[self.selected].refreshmenu()
         ui.movemenu(self.menu+self.selected,'down')
     def saveedited(self):
-        self.data[self.selected] = self.menus[self.selected].editbox.text #ui.IDs[self.menu+self.selected+'editbox'].data[0][1].text
+        self.data[self.selected] = self.menus[self.selected].editbox.text
         main.refreshdata()
         self.refreshtable()
+        self.mileageupdate()
         ui.menuback()
+    def mileageupdate(self):
+        if self.data['Owns Vehicle and has Relevant Documents'] == 'Yes':
+            ui.IDs[self.menu+'Mileagebutton'].enabled = True
+        else:
+            ui.IDs[self.menu+'Mileagebutton'].enabled = False
     def wipe(self):
         items = ['title','back','del','table','scroller','editbox','save','rect','rect2','window']
         for a in items:
