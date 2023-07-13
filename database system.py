@@ -132,8 +132,8 @@ def searchdata(data,searchterm):
     return ndata
 
 class dummytextbox:
-    def __init__(self):
-        self.text = ''
+    def __init__(self,text):
+        self.text = text
         self.enabled = False
     def refresh(self,ui):
         pass
@@ -144,7 +144,7 @@ class EDITINFO:
         self.data = data
         self.menu = menu+item
         self.master = master
-        self.editbox = dummytextbox()
+        self.editbox = dummytextbox(str(self.data))
         self.makegui()
     def makegui(self):
         ui.makewindowedmenu(10,10,400,140,self.menu,self.menu.removesuffix(self.item),basecol,roundedcorners=8,scalesize=False,scalex=False,scaley=False,ID=self.menu+'window')
@@ -152,13 +152,13 @@ class EDITINFO:
         self.textboxstart = 193
         self.checkboxes = {}
         if not self.item in list(main.checkboxes):
-            ui.maketable(5,5,[[self.lineitem(self.item),ui.maketextbox(0,0,'',200,2,self.menu,roundedcorners=4,height=80,textsize=30,verticalspacing=4,scalesize=False)]],menu=self.menu,roundedcorners=4,boxwidth=[-1,200],boxheight=80,textsize=35,scalesize=False,scalex=False,scaley=False,col=basecol,ID=self.menu+'editbox')
-            ui.makebutton(10,115,'Save',40,self.master.saveedited,self.menu,scalesize=False,scalex=False,scaley=False,roundedcorners=10,verticalspacing=3,objanchor=(0,'h/2'),ID=self.menu+'save')
+            ui.maketable(5,5,[[self.lineitem(self.item),ui.maketextbox(0,0,str(self.data),200,2,self.menu,roundedcorners=4,height=80,textsize=30,verticalspacing=4,scalesize=False)]],menu=self.menu,roundedcorners=4,boxwidth=[-1,200],boxheight=80,textsize=35,scalesize=False,scalex=False,scaley=False,col=basecol,ID=self.menu+'editbox')
+            ui.makebutton(6,115,'Save',40,self.master.saveedited,self.menu,scalesize=False,scalex=False,scaley=False,roundedcorners=10,verticalspacing=3,objanchor=(0,'h/2'),ID=self.menu+'save')
             self.editbox = ui.IDs[self.menu+'editbox'].tableimages[0][1][1]
             self.textboxstart = ui.IDs[self.menu+'editbox'].boxwidths[0]+14
         else:
             ui.maketable(5,5,[[self.lineitem(self.item),'']],menu=self.menu,roundedcorners=4,boxwidth=[-1,200],boxheight=80,textsize=35,scalesize=False,scalex=False,scaley=False,col=basecol,ID=self.menu+'editbox',layer=0)
-            ui.makebutton(10,115,'Save',40,self.master.saveedited,self.menu,scalesize=False,scalex=False,scaley=False,roundedcorners=10,verticalspacing=3,objanchor=(0,'h/2'),ID=self.menu+'save')
+            ui.makebutton(6,115,'Save',40,self.master.saveedited,self.menu,scalesize=False,scalex=False,scaley=False,roundedcorners=10,verticalspacing=3,objanchor=(0,'h/2'),ID=self.menu+'save')
             xinc = ui.IDs[self.menu+'editbox'].boxwidths[0]+20
             exclusive = [self.menu+'checkbox'+b for b in main.checkboxes[self.item] if b!='textbox']
             for b in main.checkboxes[self.item]:
@@ -170,10 +170,11 @@ class EDITINFO:
                     else: xinc+=ui.IDs[self.menu+'checkbox'+b].width+40
                     ui.IDs[self.menu+'checkbox'+b].storeddata = b 
                 elif b == 'textbox':
-                    self.editbox = ui.maketextbox(xinc,7,'',100,height=80,command=self.updatecheckboxes,menu=self.menu,ID=self.menu+'editbox',textsize=32,scalesize=False,commandifkey=True)
+                    self.editbox = ui.maketextbox(xinc,7,str(self.data),100,height=80,command=self.updatecheckboxes,menu=self.menu,ID=self.menu+'editbox',textsize=32,scalesize=False,commandifkey=True)
             self.textboxstart = xinc
         self.titlewidth = ui.IDs[self.menu+'editbox'].boxwidths[0]
         self.reshiftgui()
+        self.updatecheckboxes()
     def seteditbox(self):
         enabled = -1
         for a in self.checkboxes:
@@ -190,6 +191,24 @@ class EDITINFO:
                 self.checkboxes[a].toggle = True
             else:
                 self.checkboxes[a].toggle = False
+        if self.item == 'Postcode':
+            text = self.editbox.text.lower()[2:4]
+            if text!='':
+                text = text.split()[0]
+                try: text = int(text)
+                except: return
+                boxes = []
+                for a in list(self.checkboxes):
+                    b = a.replace('/','-')
+                    b = b.removeprefix('CH')
+                    rang = b.split('-')
+                    boxes.append([a for a in range(int(rang[0]),int(rang[1])+1)])
+                for i,a in enumerate(self.checkboxes):
+                    if text in boxes[i]:
+                        self.checkboxes[a].toggle = True
+                    else:
+                        self.checkboxes[a].toggle = False
+            
         
         
     def lineitem(self,item):
