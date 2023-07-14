@@ -1,4 +1,4 @@
-import pygame,math,random,sys,os,copy
+import pygame,math,random,sys,os,copy,time
 import PyUI as pyui
 pygame.init()
 screenw = 800
@@ -97,15 +97,45 @@ class notsql:
                 st = st.removesuffix(',')
                 f.write(st+'\n')
         
-        
-                
+      
+def datetoday(date):
+    t = 0
+    date = date.lower()
+    try:
+        splitters = '\/.,-~":;'
+        rem = 'qwertyuiopasdfghjklzxcvbnm'
+        for a in rem:
+            date = date.replace(a,'')
+        for a in splitters:
+            date = date.replace(a,'/')
+        spl = date.split('/')
+        if len(spl[2]) == 2:
+            spl[2] = '20'+spl[2]
+        t+=int(spl[0])
+        t+=int(spl[1])*31
+        t+=int(spl[2])*366
+        return t
+    except Exception as e:
+        print(e)
+        return t
 
-
+def gettoday(adjust):
+    now = time.time()
+    adjusted = now-adjust*24*60*60
+    day = int(time.ctime(adjusted).split()[2])
+    t = time.localtime()
+    year = t.tm_year
+    month = t.tm_mon
+    if day<int(time.ctime(now).split()[2]) and adjust<0:
+        month+=1
+    elif day>int(time.ctime(now).split()[2]) and adjust>0:
+        month-=1
+    return f'{day}/{month}/{year}'
 
 def completedata(data):
     allitems = ['Forename','Surname','Pronouns','Title','Birth Date','Address','Postcode','Home Telephone','Work Telephone','Mobile Number',
                 'Email','Driving License','Owns Vehicle and has Relevant Documents','Interested in volunteer driving','Days can work','Hours available per day',
-                'Times unable to complete work','Disability?','Emergency Contacts','Reasonable Adjustments','Date Started','Active','Staff','ID']
+                'Times unable to complete work','Disability?','Emergency Contacts','Reasonable Adjustments','Date Started','Active','Staff','ID','Expenses','Mileage']
     processed = {}
     for a in allitems:
         if not(a in data):
@@ -176,35 +206,66 @@ class FORM:
         self.textboxes = {}
         for a in self.fields:
             ui.maketext(10,yinc,a,34,self.unqmenu+'edit',backingcol=basecol)
-            self.textboxes[a] = ui.maketextbox(xinc,yinc,'',580-xinc,menu=self.unqmenu+'edit',textsize=32)
+            self.textboxes[a] = ui.maketextbox(xinc,yinc,'',580-xinc,menu=self.unqmenu+'edit',textsize=32,ID=self.unqmenu+a)
             yinc+=50
-        ui.makebutton(375,yinc-8,'Save',34,print,self.unqmenu+'edit',objanchor=('w/2',0),verticalspacing=4,roundedcorners=5,clickdownsize=2)
+        ui.makebutton(375,yinc-8,'Save',34,self.save,self.unqmenu+'edit',objanchor=('w/2',0),verticalspacing=4,roundedcorners=5,clickdownsize=2)
         ui.makebutton(215,yinc-8,'Clear',34,self.clear,self.unqmenu+'edit',objanchor=('w/2',0),verticalspacing=4,roundedcorners=5,clickdownsize=2)
 
     def refreshtable(self):
+        self.data.sort(key=lambda x:datetoday(x['Date']))
         data = []
+        self.table.wipe(ui,False)
         for i,a in enumerate(self.data):
-            func = funcef(i)
+            func = funcef(i,self)
             editbutton = ui.makebutton(0,0,'{dots}',30,func.func,self.unqmenu+'edit',roundedcorners=4,col=basecol,clickdownsize=1)
-            func = funcdf(i)
+            func = funcdf(i,self)
             crossbutton = ui.makebutton(0,0,'{cross}',17,func.func,self.unqmenu+'edit',roundedcorners=4,col=basecol,clickdownsize=1,textoffsetx=1,textoffsety=1)
             if self.typ == 'Expenses': data.append([a['Date'],a['Hours'],a['Pay'],editbutton,crossbutton])
-            else: data.append([a['Date'],a['Mileage'],editbutton,crossbutton])
+            else: data.append([a['Date'],a['Total Trip Mileage'],editbutton,crossbutton])
         self.table.data = data
         self.table.refresh(ui)
     
     def additem(self):
+        self.clear()
         ui.movemenu(self.unqmenu+'edit','down')
+        self.editing = -1
     def edititem(self,index):
         ui.movemenu(self.unqmenu+'edit','down')
+        for a in self.textboxes:
+            self.textboxes[a].text = self.data[index][a]
+            self.textboxes[a].refresh(ui)
+        self.editing = index
     def deleteitem(self,index):
-        print('del',index)
+        del self.data[index]
+        self.refreshtable()
         
     def clear(self):
         for a in self.textboxes:
             self.textboxes[a].text = ''
             self.textboxes[a].refresh(ui)
-
+    def save(self):
+        info = {}
+        for a in self.textboxes:
+            info[a] = self.textboxes[a].text
+        if self.editing == -1:
+            self.data.append(info)
+        else:
+            self.data[self.editing] = info
+        self.refreshtable()
+        ui.menuback()
+    def enterdown(self,dirr):
+        ui.activemenu == self.unqmenu+'edit'
+        lis = list(self.textboxes)
+        for a in self.textboxes:
+##            if a == 'Date' and self.textbowe
+            if self.textboxes[a].selected:
+                sel = lis.index(a)
+                if sel+dirr == len(lis):
+                    sel = -1
+                self.textboxes[lis[sel+dirr]].selected = True
+                self.textboxes[lis[sel]].selected = False
+                ui.selectedtextbox = ui.textboxes.index(self.textboxes[lis[sel+dirr]])
+                break
 
         
 class EDITINFO:
@@ -313,7 +374,7 @@ class ITEM:
         self.data = data
         self.menu = 'info'+str(self.data['ID'])
         self.menus = []
-        self.expensise = FORM('Expenses',[],self.menu)
+        self.expenses = FORM('Expenses',[],self.menu)
         self.mileage = FORM('Mileage',[],self.menu)
         
         self.makegui(main)
@@ -747,6 +808,8 @@ while not done:
                 dirr = 1
                 if event.key == pygame.K_UP:
                     dirr = -1
+                main.menus[main.menuin].mileage.enterdown(dirr)
+                main.menus[main.menuin].expenses.enterdown(dirr)
                 data = list(completedata({}))
                 if ui.selectedtextbox != -1:
                     ID = ui.textboxes[ui.selectedtextbox].ID
