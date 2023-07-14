@@ -71,9 +71,11 @@ class notsql:
             for i,b in enumerate(spl):
                 b = b.replace('`',',')
                 if keys[i] == 'ID': data[-1][keys[i]] = int(b)
-                elif keys[i] == 'Emergency Contacts':
+                elif keys[i] in ['Emergency Contacts','Expenses','Mileage']:
                     exec('emergencycontactexecvalue='+b,globals())
-                    data[-1][keys[i]] = [completecontactdata(e) for e in emergencycontactexecvalue]
+                    if b == 'Emergency Contacts':
+                        data[-1][keys[i]] = [completecontactdata(e) for e in emergencycontactexecvalue]
+                    else: data[-1][keys[i]] = emergencycontactexecvalue
                 else: data[-1][keys[i]] = b
         for a in range(len(data)):
             data[a] = completedata(data[a])
@@ -116,10 +118,9 @@ def datetoday(date):
         t+=int(spl[2])*366
         return t
     except Exception as e:
-        print(e)
         return t
 
-def gettoday(adjust):
+def gettoday(adjust=0):
     now = time.time()
     adjusted = now-adjust*24*60*60
     day = int(time.ctime(adjusted).split()[2])
@@ -132,6 +133,19 @@ def gettoday(adjust):
         month-=1
     return f'{day}/{month}/{year}'
 
+def autodate(text):
+    text = text.lower()
+    num = ''
+    if text in ['0','today','now','']: num = 0
+    elif text in ['yesterday']: num = 1
+    elif text in ['tomorrow']: num = -1
+    else:
+        try: num = int(text)
+        except: pass
+    if num != '':
+        text = gettoday(num)
+    return text
+
 def completedata(data):
     allitems = ['Forename','Surname','Pronouns','Title','Birth Date','Address','Postcode','Home Telephone','Work Telephone','Mobile Number',
                 'Email','Driving License','Owns Vehicle and has Relevant Documents','Interested in volunteer driving','Days can work','Hours available per day',
@@ -141,6 +155,8 @@ def completedata(data):
         if not(a in data):
             if a == 'ID':
                 processed[a] = -1
+            elif a in ['Emergency Contacts','Expenses','Mileage']:
+                processed[a] = []
             else:
                 processed[a] = ''
         else:
@@ -176,11 +192,12 @@ class dummytextbox:
         pass
 
 class FORM:
-    def __init__(self,typ,data,menu):
+    def __init__(self,typ,data,menu,master):
         self.typ = typ
         self.menu = menu
         self.unqmenu = menu+typ
         self.data = data
+        self.master = master
         if self.typ == 'Expenses': self.fields = ['Date','Hours','Pay','Alternative']
         else: self.fields = ['Date','Start Mileage','Collecting From','Number of Trays','Taken to','Close Mileage','Total Trip Mileage']
         self.makegui()
@@ -212,9 +229,10 @@ class FORM:
         ui.makebutton(215,yinc-8,'Clear',34,self.clear,self.unqmenu+'edit',objanchor=('w/2',0),verticalspacing=4,roundedcorners=5,clickdownsize=2)
 
     def refreshtable(self):
-        self.data.sort(key=lambda x:datetoday(x['Date']))
+        self.data.sort(key=lambda x:datetoday(x['Date']),reverse=True)
         data = []
         self.table.wipe(ui,False)
+        self.table.boxheight = 27
         for i,a in enumerate(self.data):
             func = funcef(i,self)
             editbutton = ui.makebutton(0,0,'{dots}',30,func.func,self.unqmenu+'edit',roundedcorners=4,col=basecol,clickdownsize=1)
@@ -238,6 +256,8 @@ class FORM:
     def deleteitem(self,index):
         del self.data[index]
         self.refreshtable()
+        self.master.data[self.typ] = self.data
+        notsql.store(main.data)
         
     def clear(self):
         for a in self.textboxes:
@@ -252,13 +272,18 @@ class FORM:
         else:
             self.data[self.editing] = info
         self.refreshtable()
+        self.master.data[self.typ] = self.data
+##        self.master.refreshtable()
+        notsql.store(main.data)
         ui.menuback()
     def enterdown(self,dirr):
         ui.activemenu == self.unqmenu+'edit'
         lis = list(self.textboxes)
         for a in self.textboxes:
-##            if a == 'Date' and self.textbowe
             if self.textboxes[a].selected:
+                if a == 'Date':
+                    self.textboxes[a].text = autodate(self.textboxes[a].text)
+                    self.textboxes[a].refresh(ui)
                 sel = lis.index(a)
                 if sel+dirr == len(lis):
                     sel = -1
@@ -374,8 +399,8 @@ class ITEM:
         self.data = data
         self.menu = 'info'+str(self.data['ID'])
         self.menus = []
-        self.expenses = FORM('Expenses',[],self.menu)
-        self.mileage = FORM('Mileage',[],self.menu)
+        self.expenses = FORM('Expenses',self.data['Expenses'],self.menu,self)
+        self.mileage = FORM('Mileage',self.data['Mileage'],self.menu,self)
         
         self.makegui(main)
         self.mileageupdate()
@@ -393,27 +418,28 @@ class ITEM:
         self.refreshtable()
 
         ## edit menu
-        self.menus = {a:EDITINFO(a,self.data[a],self.menu,self) for a in list(self.data)}
+        self.menus = {a:EDITINFO(a,self.data[a],self.menu,self) for a in list(self.data) if not(a in main.fieldignore)}
     def refreshtable(self):
         ui.IDs[self.menu+'table'].wipe(ui,False)
         data = []
         for a in self.data:
-            if a == 'ID':
-                obj = ''
-            else:
-                if a == 'Emergency Contacts':
-                    func = lambda: main.viewcontact(['Add',-1,self.data['ID']-1,self.menu])
+            if not(a in main.fieldignore):
+                if a == 'ID':
+                    obj = ''
                 else:
-                    func = funcem(a,self)
-                    func = func.func
-                obj = ui.makebutton(0,0,'{dots}',30,func,roundedcorners=4,clickdownsize=2,clickablerect=pygame.Rect(0,54,4000,4000))
-            if type(self.data[a]) == list:
-                st = ''
-                for b in self.data[a]:
-                    st+=(b['Name']+',')
-                data.append([str(a),st.removesuffix(','),obj])
-            else:                
-                data.append([str(a),str(self.data[a]),obj])
+                    if a == 'Emergency Contacts':
+                        func = lambda: main.viewcontact(['Add',-1,self.data['ID']-1,self.menu])
+                    else:
+                        func = funcem(a,self)
+                        func = func.func
+                    obj = ui.makebutton(0,0,'{dots}',30,func,roundedcorners=4,clickdownsize=2,clickablerect=pygame.Rect(0,54,4000,4000))
+                if type(self.data[a]) == list:
+                    st = ''
+                    for b in self.data[a]:
+                        st+=(b['Name']+',')
+                    data.append([str(a),st.removesuffix(','),obj])
+                else:                
+                    data.append([str(a),str(self.data[a]),obj])
         ui.IDs[self.menu+'table'].data = data
         sc = ui.IDs[self.menu+'scroller']
         if (sc.maxp-sc.minp)>sc.pageheight: ui.IDs[self.menu+'table'].boxwidth = [(screenw-126-15)/2,(screenw-126-15)/2,100]
@@ -460,15 +486,15 @@ class ITEM:
 class MAIN:
     def init(self):
         self.newusercontacts = []
+        self.menuin = 0
         #display contactID userID menu
         self.contactmenuuse = ['Add',0,-1,'add user']
         self.checkboxes = {'Pronouns':['She/Her','He/Him','They/Them','textbox'],'Postcode':['CH41-43','CH44/45','CH46-49','CH60-64','textbox'],'Driving license':['Yes','No'],'Owns Vehicle and has Relevant Documents':['Yes','No'],'Interested in volunteer driving':['Yes','No'],'Disability?':['Yes','No'],'Staff':['Yes','No'],'Emergency Contacts':['button','view'],'Active':['Yes','No']}
-
+        self.fieldignore = ['Expenses','Mileage']
         
         
         self.data = notsql.load()
         self.searchterm = ['',['name']]
-        self.data = notsql.load()
 
         self.menus = []
         self.generatemenus()
@@ -501,37 +527,38 @@ class MAIN:
         self.shiftingitems = []
         yinc = 70
         for i,a in enumerate(self.empty):
-            if a != 'ID':
-                ui.maketext(30,yinc,a,35,'add user',ID='add user'+a,maxwidth=200,backingcol=basecol)
-                h = ui.IDs['add user'+a].height
-                if a in self.checkboxes:
-                    xinc = 240
-                    disper = 540/len(self.checkboxes[a])
-                    exclusive = ['add user checkbox'+a+'*'+b for b in self.checkboxes[a] if b!='textbox']
-                    for b in self.checkboxes[a]:
-                        if not(b in ['textbox','button','view']):
-                            ui.maketext(xinc,yinc+h/2,b,30,'add user',ID='add user'+a+'*'+b,objanchor=(0,'h/2'),backingcol=basecol)
-                            xinc+=ui.IDs['add user'+a+'*'+b].width+10
-                            ui.makecheckbox(xinc,yinc+h/2,40,menu='add user',ID='add user checkbox'+a+'*'+b,objanchor=(0,'h/2'),spacing=-8,clickdownsize=2,toggle=False,bindtoggle=exclusive)
-                            if a in ['Pronouns','Postcode']: xinc+=ui.IDs['add user checkbox'+a+'*'+b].width+10
-                            else: xinc+=ui.IDs['add user checkbox'+a+'*'+b].width+40
-                            ui.IDs['add user checkbox'+a+'*'+b].storeddata = b
-                            self.shiftingitems.append('add user'+a+'*'+b)
-                            self.shiftingitems.append('add user checkbox'+a+'*'+b)
-                        elif b == 'textbox' and a!='Postcode':
-                            ui.maketextbox(xinc,yinc,'',133,height=h,menu='add user',ID='add user inp'+a+'*'+b,textsize=32)
-                            self.shiftingitems.append('add user inp'+a+'*'+b)
-                        elif b == 'button':
-                            ui.makebutton(xinc,yinc,'Add Emergency Contact',32,command=lambda: self.newcontact(['New',-1,-1,'add user']),width=200,height=h,menu='add user',ID='add user button'+a+'*'+b,roundedcorners=6,clickdownsize=2)
-                            self.shiftingitems.append('add user button'+a+'*'+b)
-                        elif b == 'view':
-                            ui.makebutton(xinc+210,yinc,'View Emergency Contacts',32,command=lambda: self.viewcontact(['Add',-1,-1,'add user']),width=200,height=h,menu='add user',ID='add user button'+a+'*'+b,roundedcorners=6,clickdownsize=2)
-                            self.shiftingitems.append('add user button'+a+'*'+b)
-                else:
-                    ui.maketextbox(240,yinc,'',540,height=h,menu='add user',ID='add user inp'+a,textsize=32,spacing=1)
-                    self.shiftingitems.append('add user inp'+a)
-                self.shiftingitems.append('add user'+a)
-                yinc+=h+15
+            if not(a in self.fieldignore):
+                if a != 'ID':
+                    ui.maketext(30,yinc,a,35,'add user',ID='add user'+a,maxwidth=200,backingcol=basecol)
+                    h = ui.IDs['add user'+a].height
+                    if a in self.checkboxes:
+                        xinc = 240
+                        disper = 540/len(self.checkboxes[a])
+                        exclusive = ['add user checkbox'+a+'*'+b for b in self.checkboxes[a] if b!='textbox']
+                        for b in self.checkboxes[a]:
+                            if not(b in ['textbox','button','view']):
+                                ui.maketext(xinc,yinc+h/2,b,30,'add user',ID='add user'+a+'*'+b,objanchor=(0,'h/2'),backingcol=basecol)
+                                xinc+=ui.IDs['add user'+a+'*'+b].width+10
+                                ui.makecheckbox(xinc,yinc+h/2,40,menu='add user',ID='add user checkbox'+a+'*'+b,objanchor=(0,'h/2'),spacing=-8,clickdownsize=2,toggle=False,bindtoggle=exclusive)
+                                if a in ['Pronouns','Postcode']: xinc+=ui.IDs['add user checkbox'+a+'*'+b].width+10
+                                else: xinc+=ui.IDs['add user checkbox'+a+'*'+b].width+40
+                                ui.IDs['add user checkbox'+a+'*'+b].storeddata = b
+                                self.shiftingitems.append('add user'+a+'*'+b)
+                                self.shiftingitems.append('add user checkbox'+a+'*'+b)
+                            elif b == 'textbox' and a!='Postcode':
+                                ui.maketextbox(xinc,yinc,'',133,height=h,menu='add user',ID='add user inp'+a+'*'+b,textsize=32)
+                                self.shiftingitems.append('add user inp'+a+'*'+b)
+                            elif b == 'button':
+                                ui.makebutton(xinc,yinc,'Add Emergency Contact',32,command=lambda: self.newcontact(['New',-1,-1,'add user']),width=200,height=h,menu='add user',ID='add user button'+a+'*'+b,roundedcorners=6,clickdownsize=2)
+                                self.shiftingitems.append('add user button'+a+'*'+b)
+                            elif b == 'view':
+                                ui.makebutton(xinc+210,yinc,'View Emergency Contacts',32,command=lambda: self.viewcontact(['Add',-1,-1,'add user']),width=200,height=h,menu='add user',ID='add user button'+a+'*'+b,roundedcorners=6,clickdownsize=2)
+                                self.shiftingitems.append('add user button'+a+'*'+b)
+                    else:
+                        ui.maketextbox(240,yinc,'',540,height=h,menu='add user',ID='add user inp'+a,textsize=32,spacing=1)
+                        self.shiftingitems.append('add user inp'+a)
+                    self.shiftingitems.append('add user'+a)
+                    yinc+=h+15
         ui.makescroller(0,0,screenh-54,self.shiftaddmenu,maxp=yinc,pageheight=screenh,anchor=('w','h'),objanchor=('w','h'),ID='add menu scroller',menu='add user',runcommandat=1,scalesize=False)
         ui.maketext(10,25,'New User',40,'add user',textcol=(240,240,240),layer=3,backingcol=pyui.shiftcolor(basecol,20),centery=True)
         ui.makerect(0,50,screenw,4,menu='add user',layer=2,col=(80,150,160))
@@ -594,7 +621,6 @@ class MAIN:
         sc = ui.IDs['main scroller']
         if (sc.maxp-sc.minp)>sc.pageheight:
             ui.IDs['main table'].boxwidth = [100,(screenw-8-20-200-15),100]
-            print('shorter')
         else: ui.IDs['main table'].boxwidth = [100,(screenw-8-20-200),100]
         
         ui.IDs['main table'].data = data
@@ -821,6 +847,9 @@ while not done:
                             prefix = 'add user inp'
                         item = ID.removeprefix(prefix)
                         if item in data and (data.index(item)!=len(data)-1 or dirr == -1):
+                            if item == 'Date Started':
+                                ui.IDs[ID].text = autodate(ui.IDs[ID].text)
+                                ui.IDs[ID].refresh(ui)
                             ui.IDs[ID].selected = False
                             newID = prefix+data[data.index(item)+dirr]
                             inc = dirr*2
