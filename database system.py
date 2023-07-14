@@ -184,6 +184,25 @@ def searchdata(data,searchterm):
                 break
     return ndata
 
+def dataoutput(data,item):
+    output = {}
+    for i,a in enumerate(data):
+        info = a[item]
+        if item in ['Postcode']:
+            for a in main.menus[i].menus['Postcode'].checkboxes:
+                if main.menus[i].menus['Postcode'].checkboxes[a].toggle:
+                    info = a
+                    print(a)
+        if not(info in output):
+            output[info] = 0
+        output[info]+=1
+    with open('data.txt','w') as f:
+        for a in output:
+            if a == '': b = 'No Data'
+            else: b = a
+            f.write(f'{b} - {output[a]}\n')
+            
+
 class dummytextbox:
     def __init__(self,text):
         self.text = text
@@ -297,23 +316,24 @@ class EDITINFO:
     def __init__(self,item,data,menu,master):
         self.item = item
         self.data = data
+        self.outputdata = data
         self.menu = menu+item
         self.master = master
         self.editbox = dummytextbox(str(self.data))
         self.makegui()
     def makegui(self):
         ui.makewindowedmenu(10,10,400,140,self.menu,self.menu.removesuffix(self.item),basecol,roundedcorners=8,scalesize=False,scalex=False,scaley=False,ID=self.menu+'window')
+        ui.makebutton(6,115,'Save',40,self.master.saveedited,self.menu,scalesize=False,scalex=False,scaley=False,roundedcorners=10,verticalspacing=3,objanchor=(0,'h/2'),ID=self.menu+'save')
+        ui.makebutton(99,115,'Data',40,lambda: dataoutput(main.data,self.item),self.menu,scalesize=False,scalex=False,scaley=False,roundedcorners=10,verticalspacing=3,objanchor=(0,'h/2'),ID=self.menu+'save')
         self.titlewidth = 184
         self.textboxstart = 193
         self.checkboxes = {}
         if not self.item in list(main.checkboxes):
             ui.maketable(5,5,[[self.lineitem(self.item),ui.maketextbox(0,0,str(self.data),200,2,self.menu,roundedcorners=4,height=80,textsize=30,verticalspacing=4,scalesize=False)]],menu=self.menu,roundedcorners=4,boxwidth=[-1,200],boxheight=80,textsize=35,scalesize=False,scalex=False,scaley=False,col=basecol,ID=self.menu+'editbox')
-            ui.makebutton(6,115,'Save',40,self.master.saveedited,self.menu,scalesize=False,scalex=False,scaley=False,roundedcorners=10,verticalspacing=3,objanchor=(0,'h/2'),ID=self.menu+'save')
             self.editbox = ui.IDs[self.menu+'editbox'].tableimages[0][1][1]
             self.textboxstart = ui.IDs[self.menu+'editbox'].boxwidths[0]+14
         else:
             ui.maketable(5,5,[[self.lineitem(self.item),'']],menu=self.menu,roundedcorners=4,boxwidth=[-1,200],boxheight=80,textsize=35,scalesize=False,scalex=False,scaley=False,col=basecol,ID=self.menu+'editbox',layer=0)
-            ui.makebutton(6,115,'Save',40,self.master.saveedited,self.menu,scalesize=False,scalex=False,scaley=False,roundedcorners=10,verticalspacing=3,objanchor=(0,'h/2'),ID=self.menu+'save')
             xinc = ui.IDs[self.menu+'editbox'].boxwidths[0]+20
             exclusive = [self.menu+'checkbox'+b for b in main.checkboxes[self.item] if b!='textbox']
             for b in main.checkboxes[self.item]:
