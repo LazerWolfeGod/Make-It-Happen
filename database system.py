@@ -217,22 +217,24 @@ class FORM:
         self.unqmenu = menu+typ
         self.data = data
         self.master = master
+        self.scroller = 0
         if self.typ == 'Expenses': self.fields = ['Date','Hours','Pay','Alternative']
         else: self.fields = ['Date','Start Mileage','Collecting From','Number of Trays','Taken to','Close Mileage','Total Trip Mileage']
         self.makegui()
     def makegui(self):
         ## list menu
-        ui.makewindowedmenu(105,60,589,340,self.unqmenu+'list',self.menu,basecol,roundedcorners=10,scaley=True,ID=self.menu+'list window')
+        ui.makewindowedmenu(105,60,589,340,self.unqmenu+'list',self.menu,basecol,roundedcorners=10,scaley=True,ID=self.unqmenu+'list window')
         if self.typ == 'Expenses': xpos = -214
         else: xpos = -333
         ui.makebutton(xpos,25,self.typ,30,lambda: ui.movemenu(self.unqmenu+'list','down'),self.menu,anchor=('w',0),objanchor=('w','h/2'),roundedcorners=10,verticalspacing=4,clickdownsize=2,scalesize=False,layer=3,col=basecol,ID=self.unqmenu+'button')
 
-        if self.typ == 'Expenses': self.table = ui.maketable(10,10,[],['Date','Hours','Pay','',''],self.unqmenu+'list',boxwidth=[150,150,150,80,27],boxheight=27,verticalspacing=5,textsize=30,roundedcorners=4,col=basecol)
-        else: self.table = ui.maketable(10,10,[],['Date','Mileage','',''],self.unqmenu+'list',boxwidth=[226,226,80,27],boxheight=27,verticalspacing=4,textsize=30,roundedcorners=4,col=basecol)
+        if self.typ == 'Expenses': self.table = ui.maketable(10,10,[],['Date','Hours','Pay','',''],self.unqmenu+'list',boxwidth=[150,150,150,80,27],boxheight=27,verticalspacing=5,textsize=30,roundedcorners=4,col=basecol,ID=self.unqmenu+'list')
+        else: self.table = ui.maketable(10,10,[],['Date','Mileage','',''],self.unqmenu+'list',boxwidth=[226,226,80,27],boxheight=27,verticalspacing=4,textsize=30,roundedcorners=4,col=basecol,ID=self.unqmenu+'list')
         self.refreshtable()
         
-        ui.makebutton(12,12,'+',40,self.additem,self.unqmenu+'list',col=basecol,roundedcorners=4,clickdownsize=1,border=2,layer=2,width=27,height=27,textoffsety=-2,textoffsetx=1)
-
+        ui.makebutton(12,12,'+',40,self.additem,self.unqmenu+'list',col=basecol,roundedcorners=4,clickdownsize=1,border=2,layer=2,width=27,height=27,textoffsety=-2,textoffsetx=1,ID=self.unqmenu+'add button')
+        self.scroller = ui.makescroller(584,10,320,self.shifttable,maxp=self.table.height,pageheight=320,menu=self.unqmenu+'list',runcommandat=1,col=pyui.shiftcolor(basecol,30),roundedcorners=3)
+        
         ## edit menu
         ui.makewindowedmenu(105,60,590,86+50*len(self.fields),self.unqmenu+'edit',self.menu,basecol,roundedcorners=10,scaley=True,ID=self.menu+'edit window')
         ui.maketext(295,5,'Enter '+self.typ,40,self.unqmenu+'edit',self.unqmenu+'edit title',backingcol=basecol,objanchor=('w/2',0))
@@ -261,6 +263,19 @@ class FORM:
             else: data.append([a['Date'],a['Total Trip Mileage'],editbutton,crossbutton])
         self.table.data = data
         self.table.refresh(ui)
+        if self.scroller != 0:
+            self.scroller.maxp = self.table.height
+            self.scroller.refresh(ui)
+            self.scroller.limitpos(ui)
+        if self.table.height<320:
+            ui.IDs[self.unqmenu+'list window'].width = 589
+        else:
+            ui.IDs[self.unqmenu+'list window'].width = 604
+
+    def shifttable(self):
+        ui.IDs[self.unqmenu+'add button'].y = 12-self.scroller.scroll
+        self.table.y = 10-self.scroller.scroll
+        self.table.refreshcords(ui)
     
     def additem(self):
         self.clear()
@@ -854,8 +869,9 @@ while not done:
                 dirr = 1
                 if event.key == pygame.K_UP:
                     dirr = -1
-                main.menus[main.menuin].mileage.enterdown(dirr)
-                main.menus[main.menuin].expenses.enterdown(dirr)
+                if len(main.menus)>0:
+                    main.menus[main.menuin].mileage.enterdown(dirr)
+                    main.menus[main.menuin].expenses.enterdown(dirr)
                 data = list(completedata({}))
                 if ui.selectedtextbox != -1:
                     ID = ui.textboxes[ui.selectedtextbox].ID
