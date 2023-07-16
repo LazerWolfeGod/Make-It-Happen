@@ -445,16 +445,17 @@ class EDITINFO:
     
 
 class ITEM:
-    def __init__(self,data,main):
+    def __init__(self,data):
         self.data = data
         self.menu = 'info'+str(self.data['ID'])
         self.menus = []
+        self.active = False
+
+    def makegui(self,main):
+        self.active = True
         self.expenses = FORM('Expenses',self.data['Expenses'],self.menu,self)
         self.mileage = FORM('Mileage',self.data['Mileage'],self.menu,self)
         
-        self.makegui(main)
-        self.mileageupdate()
-    def makegui(self,main):
         ## main
         ui.maketext(10,25,'Data for '+self.data['Forename'],40,self.menu,self.menu+'title',backingcol=(83,86,100),objanchor=(0,'h/2'),scalesize=False,layer=3)
         ui.makebutton(-8,25,'Back',30,ui.menuback,self.menu,ID=self.menu+'back',anchor=('w',0),objanchor=('w','h/2'),roundedcorners=10,verticalspacing=4,clickdownsize=2,scalesize=False,layer=3,col=basecol)
@@ -469,6 +470,7 @@ class ITEM:
 
         ## edit menu
         self.menus = {a:EDITINFO(a,self.data[a],self.menu,self) for a in list(self.data) if not(a in main.fieldignore)}
+        self.mileageupdate()
     def refreshtable(self):
         ui.IDs[self.menu+'table'].wipe(ui,False)
         data = []
@@ -589,7 +591,7 @@ class MAIN:
                             if not(b in ['textbox','button','view']):
                                 ui.maketext(xinc,yinc+h/2,b,30,'add user',ID='add user'+a+'*'+b,objanchor=(0,'h/2'),backingcol=basecol)
                                 xinc+=ui.IDs['add user'+a+'*'+b].width+10
-                                ui.makecheckbox(xinc,yinc+h/2,40,menu='add user',ID='add user checkbox'+a+'*'+b,objanchor=(0,'h/2'),spacing=-8,clickdownsize=2,toggle=False,bindtoggle=exclusive)
+                                ui.makecheckbox(xinc,yinc+h/2,40,menu='add user',ID='add user checkbox'+a+'*'+b,objanchor=(0,'h/2'),spacing=-8,clickdownsize=2,toggle=False,bindtoggle=exclusive,clickableborder=15)
                                 if a in ['Pronouns','Postcode']: xinc+=ui.IDs['add user checkbox'+a+'*'+b].width+10
                                 else: xinc+=ui.IDs['add user checkbox'+a+'*'+b].width+40
                                 ui.IDs['add user checkbox'+a+'*'+b].storeddata = b
@@ -643,7 +645,7 @@ class MAIN:
         ui.makewindowedmenu(0,0,200,122,'confirm',col=basecol,roundedcorners=10,ID='confirm menu',center=True,anchor=('w/2','h/2'))
         ui.maketext(100,5,'Confirm',40,'confirm',backingcol=basecol,objanchor=('w/2',0))
         ui.makebutton(100,50,'DELETE',50,menu='confirm',verticalspacing=6,roundedcorners=7,col=(180,60,60),objanchor=('w/2',0),ID='confirm button',clickdownsize=2)
-        
+        self.reshiftgui()
         
         
     def generatemenus(self):
@@ -651,7 +653,7 @@ class MAIN:
             a.wipe()
         self.menus = []
         for a in self.data:
-            self.menus.append(ITEM(a,self))
+            self.menus.append(ITEM(a))
             
     def refreshtable(self):
         displaydata = searchdata(self.data,self.searchterm)
@@ -773,6 +775,8 @@ class MAIN:
         ui.IDs['main table'].refreshcords(ui)
     def moredetailmenu(self,ID):
         self.menuin = ID-1
+        if not self.menus[self.menuin].active:
+            self.menus[self.menuin].makegui(self)
         self.menus[self.menuin].reshiftgui()
         self.menus[self.menuin].refreshtable()
         ui.movemenu('info'+str(ID),'left')
@@ -884,7 +888,7 @@ while not done:
                 dirr = 1
                 if event.key == pygame.K_UP:
                     dirr = -1
-                if len(main.menus)>0:
+                if len(main.menus)>0 and main.menus[main.menuin].active:
                     main.menus[main.menuin].mileage.enterdown(dirr)
                     main.menus[main.menuin].expenses.enterdown(dirr)
                 data = list(completedata({}))
