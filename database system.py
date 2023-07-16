@@ -112,10 +112,11 @@ def datetoday(date):
             date = date.replace(a,'/')
         spl = date.split('/')
         if len(spl[2]) == 2:
-            spl[2] = '20'+spl[2]
+            if int(spl[2])<35: spl[2] = '20'+spl[2]
+            else: spl[2] = '19'+spl[2]
         t+=int(spl[0])
         t+=int(spl[1])*31
-        t+=int(spl[2])*366
+        t+=int(spl[2])*365.25
         return t
     except Exception as e:
         return t
@@ -145,6 +146,16 @@ def autodate(text):
     if num != '':
         text = gettoday(num)
     return text
+
+def filternums(text):
+    nums = '0123456789'
+    ntext = ''
+    for a in text:
+        if a in nums:
+            ntext+=a
+    if ntext == '': out = 0
+    else: out = int(ntext)
+    return out
 
 def completedata(data):
     allitems = ['Forename','Surname','Pronouns','Title','Birth Date','Address','Postcode','Home Telephone','Work Telephone','Mobile Number',
@@ -192,9 +203,10 @@ def dataoutput(data,item):
             for a in main.menus[i].menus['Postcode'].checkboxes:
                 if main.menus[i].menus['Postcode'].checkboxes[a].toggle:
                     info = a
-                    print(a)
+        if item == 'Birth Date':
+            info = int(datetoday(gettoday())/365.25-datetoday(a[item])/365.25)
         if not(info in output):
-            output[info] = 0
+           output[info] = 0
         output[info]+=1
     with open('data.txt','w') as f:
         for a in output:
@@ -317,6 +329,9 @@ class FORM:
             if self.textboxes[a].selected:
                 if a == 'Date':
                     self.textboxes[a].text = autodate(self.textboxes[a].text)
+                    self.textboxes[a].refresh(ui)
+                elif a == 'Total Trip Mileage' and self.textboxes[a].text == '':
+                    self.textboxes[a].text = str(filternums(self.textboxes['Close Mileage'].text)-filternums(self.textboxes['Start Mileage'].text))
                     self.textboxes[a].refresh(ui)
                 sel = lis.index(a)
                 if sel+dirr == len(lis):
