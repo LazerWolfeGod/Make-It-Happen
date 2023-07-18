@@ -13,7 +13,7 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
-logo = pygame.image.load(resource_path('images\\make it happen white small.png'))
+logo = pygame.image.load(resource_path('images\make it happen white small.png'))
 logo.set_colorkey((255,255,255))
 pygame.display.set_icon(logo)
 screen = pygame.display.set_mode((screenw, screenh),pygame.RESIZABLE)
@@ -158,8 +158,8 @@ def filternums(text):
     return out
 
 def completedata(data):
-    allitems = ['Forename','Surname','Pronouns','Title','Birth Date','Address','Postcode','Home Telephone','Work Telephone','Mobile Number',
-                'Email','Driving License','Owns Vehicle and has Relevant Documents','Interested in volunteer driving','Days can work','Hours available per day',
+    allitems = ['Forename','Surname','Pronouns','Title','Birth Date','Ethnicity','Address','Postcode','Home Telephone','Work Telephone','Mobile Number',
+                'Email','Qualifications','Driving License','Owns Vehicle and has Relevant Documents','Interested in volunteer driving','Days can work','Hours available per day',
                 'Times unable to complete work','Disability?','Emergency Contacts','Reasonable Adjustments','Date Started','Active','Staff','ID','Expenses','Mileage']
     processed = {}
     for a in allitems:
@@ -204,7 +204,10 @@ def dataoutput(data,item):
                 if main.menus[i].menus['Postcode'].checkboxes[a].toggle:
                     info = a
         if item == 'Birth Date':
-            info = int(datetoday(gettoday())/365.25-datetoday(a[item])/365.25)
+            if datetoday(a[item])!=0:
+                info = int(datetoday(gettoday())/365.25-datetoday(a[item])/365.25)
+            else:
+                info = 'No Data'
         if not(info in output):
            output[info] = 0
         output[info]+=1
@@ -371,7 +374,7 @@ class EDITINFO:
                     ui.maketext(xinc,45,b,30,self.menu,ID=self.menu+b,objanchor=(0,'h/2'),backingcol=basecol,scalesize=False)
                     xinc+=ui.IDs[self.menu+b].width+10
                     self.checkboxes[b] = ui.makecheckbox(xinc,45,40,self.seteditbox,menu=self.menu,ID=self.menu+'checkbox'+b,objanchor=(0,'h/2'),spacing=-8,clickdownsize=2,toggle=False,bindtoggle=exclusive,scalesize=False)
-                    if self.item in ['Pronouns','Postcode']: xinc+=ui.IDs[self.menu+'checkbox'+b].width+10
+                    if self.item in ['Pronouns','Postcode','Ethnicity']: xinc+=ui.IDs[self.menu+'checkbox'+b].width+10
                     else: xinc+=ui.IDs[self.menu+'checkbox'+b].width+40
                     ui.IDs[self.menu+'checkbox'+b].storeddata = b 
                 elif b == 'textbox':
@@ -541,7 +544,7 @@ class MAIN:
         self.menuin = 0
         #display contactID userID menu
         self.contactmenuuse = ['Add',0,-1,'add user']
-        self.checkboxes = {'Pronouns':['She/Her','He/Him','They/Them','textbox'],'Postcode':['CH41-43','CH44/45','CH46-49','CH60-64','textbox'],'Driving license':['Yes','No'],'Owns Vehicle and has Relevant Documents':['Yes','No'],'Interested in volunteer driving':['Yes','No'],'Disability?':['Yes','No'],'Staff':['Yes','No'],'Emergency Contacts':['button','view'],'Active':['Yes','No']}
+        self.checkboxes = {'Pronouns':['She/Her','He/Him','They/Them','textbox'],'Postcode':['CH41-43','CH44/45','CH46-49','CH60-64','textbox'],'Driving license':['Yes','No'],'Owns Vehicle and has Relevant Documents':['Yes','No'],'Interested in volunteer driving':['Yes','No'],'Disability?':['Yes','No'],'Staff':['Yes','No'],'Emergency Contacts':['button','view'],'Active':['Yes','No'],'Ethnicity':['White British','White Irish','BAME','textbox']}
         self.fieldignore = ['Expenses','Mileage']
         
         
@@ -592,13 +595,15 @@ class MAIN:
                                 ui.maketext(xinc,yinc+h/2,b,30,'add user',ID='add user'+a+'*'+b,objanchor=(0,'h/2'),backingcol=basecol)
                                 xinc+=ui.IDs['add user'+a+'*'+b].width+10
                                 ui.makecheckbox(xinc,yinc+h/2,40,menu='add user',ID='add user checkbox'+a+'*'+b,objanchor=(0,'h/2'),spacing=-8,clickdownsize=2,toggle=False,bindtoggle=exclusive,clickableborder=15)
-                                if a in ['Pronouns','Postcode']: xinc+=ui.IDs['add user checkbox'+a+'*'+b].width+10
+                                if a in ['Pronouns','Postcode','Ethnicity']: xinc+=ui.IDs['add user checkbox'+a+'*'+b].width+10
                                 else: xinc+=ui.IDs['add user checkbox'+a+'*'+b].width+40
                                 ui.IDs['add user checkbox'+a+'*'+b].storeddata = b
                                 self.shiftingitems.append('add user'+a+'*'+b)
                                 self.shiftingitems.append('add user checkbox'+a+'*'+b)
                             elif b == 'textbox' and a!='Postcode':
-                                ui.maketextbox(xinc,yinc,'',133,height=h,menu='add user',ID='add user inp'+a+'*'+b,textsize=32)
+                                if a == 'Pronouns': wid = 133
+                                else: wid = 93
+                                ui.maketextbox(xinc,yinc,'',wid,height=h,menu='add user',ID='add user inp'+a+'*'+b,textsize=32)
                                 self.shiftingitems.append('add user inp'+a+'*'+b)
                             elif b == 'button':
                                 ui.makebutton(xinc,yinc,'Add Emergency Contact',32,command=lambda: self.newcontact(['New',-1,-1,'add user']),width=200,height=h,menu='add user',ID='add user button'+a+'*'+b,roundedcorners=6,clickdownsize=2)
@@ -817,7 +822,7 @@ class MAIN:
         self.data.append(completedata(data))
         notsql.store(self.data)
         self.refreshtable()
-        self.menus.append(ITEM(completedata(data),self))
+        self.menus.append(ITEM(completedata(data)))
         self.clearuser()
         ui.menuback()
     def deluser(self):
