@@ -111,6 +111,8 @@ def datetoday(date):
         for a in splitters:
             date = date.replace(a,'/')
         spl = date.split('/')
+        if len(spl[2]) == 1:
+            spl[2] = '0'+spl[2]
         if len(spl[2]) == 2:
             if int(spl[2])<35: spl[2] = '20'+spl[2]
             else: spl[2] = '19'+spl[2]
@@ -238,7 +240,7 @@ class FORM:
         self.makegui()
     def makegui(self):
         ## list menu
-        ui.makewindowedmenu(105,60,589,340,self.unqmenu+'list',self.menu,basecol,roundedcorners=10,scaley=True,ID=self.unqmenu+'list window')
+        ui.makewindowedmenu(0,0,589,340,self.unqmenu+'list',self.menu,basecol,roundedcorners=10,scaley=True,ID=self.unqmenu+'list window',center=True,anchor=('w/2','h/2'))
         if self.typ == 'Expenses': xpos = -214
         else: xpos = -333
         ui.makebutton(xpos,25,self.typ,30,lambda: ui.movemenu(self.unqmenu+'list','down'),self.menu,anchor=('w',0),objanchor=('w','h/2'),roundedcorners=10,verticalspacing=4,clickdownsize=2,scalesize=False,layer=3,col=basecol,ID=self.unqmenu+'button')
@@ -251,7 +253,9 @@ class FORM:
         self.scroller = ui.makescroller(584,10,320,self.shifttable,maxp=self.table.height,pageheight=320,menu=self.unqmenu+'list',runcommandat=1,col=pyui.shiftcolor(basecol,30),roundedcorners=3)
         
         ## edit menu
-        ui.makewindowedmenu(105,60,590,86+50*len(self.fields),self.unqmenu+'edit',self.menu,basecol,roundedcorners=10,scaley=True,ID=self.menu+'edit window')
+        spread = 50
+        if self.typ == 'Mileage': spread = 40
+        ui.makewindowedmenu(0,0,590,86+spread*(len(self.fields)-1)+50,self.unqmenu+'edit',self.menu,basecol,roundedcorners=10,scaley=True,ID=self.menu+'edit window',center=True,anchor=('w/2','h/2'))
         ui.maketext(295,5,'Enter '+self.typ,40,self.unqmenu+'edit',self.unqmenu+'edit title',backingcol=basecol,objanchor=('w/2',0))
         yinc = 45
         xinc = 210
@@ -260,7 +264,8 @@ class FORM:
         for a in self.fields:
             ui.maketext(10,yinc,a,34,self.unqmenu+'edit',backingcol=basecol)
             self.textboxes[a] = ui.maketextbox(xinc,yinc,'',580-xinc,menu=self.unqmenu+'edit',textsize=32,ID=self.unqmenu+a)
-            yinc+=50
+            yinc+=spread
+        if self.typ == 'Mileage': yinc += 10
         ui.makebutton(375,yinc-8,'Save',34,self.save,self.unqmenu+'edit',objanchor=('w/2',0),verticalspacing=4,roundedcorners=5,clickdownsize=2)
         ui.makebutton(215,yinc-8,'Clear',34,self.clear,self.unqmenu+'edit',objanchor=('w/2',0),verticalspacing=4,roundedcorners=5,clickdownsize=2)
 
@@ -451,7 +456,8 @@ class ITEM:
     def __init__(self,data):
         self.data = data
         self.menu = 'info'+str(self.data['ID'])
-        self.menus = []
+        premake = ['Postcode']
+        self.menus = {a:EDITINFO(a,self.data[a],self.menu,self) for a in premake}
         self.active = False
 
     def makegui(self,main):
