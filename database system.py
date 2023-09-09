@@ -13,7 +13,7 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
-logo = pygame.image.load(resource_path('images\make it happen white small.png'))
+logo = pygame.image.load(resource_path('images\\make it happen white small.png'))
 logo.set_colorkey((255,255,255))
 pygame.display.set_icon(logo)
 screen = pygame.display.set_mode((screenw, screenh),pygame.RESIZABLE)
