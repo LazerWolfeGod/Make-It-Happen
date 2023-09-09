@@ -622,7 +622,6 @@ class MAIN:
                         self.shiftingitems.append('add user inp'+a)
                     self.shiftingitems.append('add user'+a)
                     yinc+=h+15
-        print(yinc)
         ui.makescroller(0,0,screenh-54,self.shiftaddmenu,maxp=yinc,pageheight=screenh,anchor=('w','h'),objanchor=('w','h'),ID='add menu scroller',menu='add user',runcommandat=1,scalesize=False)
         ui.maketext(10,25,'New User',40,'add user',textcol=(240,240,240),layer=3,backingcol=pyui.shiftcolor(basecol,20),centery=True)
         ui.makerect(0,50,screenw,4,menu='add user',layer=2,col=(80,150,160))
@@ -870,7 +869,6 @@ class MAIN:
         ui.IDs['add menu scroller'].height = screenh-54*ui.scale
         ui.IDs['add menu scroller'].pageheight = screenh/ui.scale
         ui.IDs['add menu scroller'].maxp = (ui.IDs['add userStaff'].anchor[1]+(ui.IDs['add userStaff'].starty-ui.IDs['add userStaff'].objanchor[1])*ui.IDs['add userStaff'].scale)/ui.IDs['add userStaff'].dirscale[1]
-        print(ui.IDs['add menu scroller'].maxp,ui.IDs['add menu scroller'].pageheight)
         ui.IDs['add menu scroller'].refresh(ui)
         ui.IDs['add menu scroller'].resetcords(ui)
         ui.IDs['main scroller'].scroll = 0
