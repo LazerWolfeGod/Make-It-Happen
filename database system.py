@@ -688,6 +688,8 @@ class MAIN:
         
         ui.IDs['main table'].data = data
         ui.IDs['main table'].refresh(ui)
+        sc.maxp = ui.IDs['main table'].height
+        sc.refresh(ui)
         
     def newcontact(self,contactmenuuse):
         if contactmenuuse == -1:
@@ -799,6 +801,7 @@ class MAIN:
         self.refreshtable()
     def adduser(self):
         ui.movemenu('add user','up')
+        self.shiftaddmenu()
     def clearuser(self):
         for a in self.shiftingitems:
             if type(ui.IDs[a]) == pyui.TEXTBOX:
@@ -861,6 +864,8 @@ class MAIN:
         for a in self.shiftingitems:
             ui.IDs[a].y = (ui.IDs[a].anchor[1]+ui.IDs[a].starty*ui.IDs[a].scale-ui.IDs[a].objanchor[1]*ui.IDs[a].scale)/ui.IDs[a].dirscale[1]-ui.IDs['add menu scroller'].scroll
             ui.IDs[a].refreshcords(ui)
+        obj = ui.IDs[self.shiftingitems[7]]
+##        print(obj.y,obj.ID,obj.starty,ui.IDs['add menu scroller'].scroll)
     def reshiftgui(self):
         ui.IDs['search bar'].width = (screenw-100)/2
         ui.IDs['search bar'].refresh(ui)
