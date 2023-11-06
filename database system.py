@@ -22,8 +22,9 @@ pygame.scrap.init()
 ui = pyui.UI()
 done = False
 clock = pygame.time.Clock()
-ui.defaultcol = (50,120,150)
-ui.defaulttextcol = (220,220,240)
+ui.styleset(col=(50,120,150),textcol=(220,220,240))
+##ui.defaultcol = (50,120,150)
+##ui.defaulttextcol = (220,220,240)
 basecol = (63,65,75)
 ##ui.defaultanimationspeed = 2
 ##basecol = (140,150,170)
@@ -224,7 +225,7 @@ class dummytextbox:
     def __init__(self,text):
         self.text = text
         self.enabled = False
-    def refresh(self,ui):
+    def refresh(self):
         pass
 
 class FORM:
@@ -272,7 +273,7 @@ class FORM:
     def refreshtable(self):
         self.data.sort(key=lambda x:datetoday(x['Date']),reverse=True)
         data = []
-        self.table.wipe(ui,False)
+##        self.table.wipe(ui,False)
         self.table.boxheight = 27
         for i,a in enumerate(self.data):
             func = funcef(i,self)
@@ -282,20 +283,22 @@ class FORM:
             if self.typ == 'Expenses': data.append([a['Date'],a['Hours'],a['Pay'],editbutton,crossbutton])
             else: data.append([a['Date'],a['Total Trip Mileage'],editbutton,crossbutton])
         self.table.data = data
-        self.table.refresh(ui)
+        self.table.refresh()
         if self.scroller != 0:
             self.scroller.maxp = self.table.height
-            self.scroller.refresh(ui)
-            self.scroller.limitpos(ui)
+            self.scroller.refresh()
+            self.scroller.limitpos()
         if self.table.height<320:
             ui.IDs[self.unqmenu+'list window'].width = 589
         else:
             ui.IDs[self.unqmenu+'list window'].width = 604
 
     def shifttable(self):
-        ui.IDs[self.unqmenu+'add button'].y = 12-self.scroller.scroll
-        self.table.y = 10-self.scroller.scroll
-        self.table.refreshcords(ui)
+        if self.scroller == 0: sc = 0
+        else: sc = self.scroller.scroll
+        ui.IDs[self.unqmenu+'add button'].y = 12-sc
+        self.table.y = 10-sc
+        self.table.refreshcords()
     
     def additem(self):
         self.clear()
@@ -305,7 +308,7 @@ class FORM:
         ui.movemenu(self.unqmenu+'edit','down')
         for a in self.textboxes:
             self.textboxes[a].text = self.data[index][a]
-            self.textboxes[a].refresh(ui)
+            self.textboxes[a].refresh()
         self.editing = index
     def deleteitem(self,index):
         del self.data[index]
@@ -316,7 +319,7 @@ class FORM:
     def clear(self):
         for a in self.textboxes:
             self.textboxes[a].text = ''
-            self.textboxes[a].refresh(ui)
+            self.textboxes[a].refresh()
     def save(self):
         info = {}
         for a in self.textboxes:
@@ -367,11 +370,11 @@ class EDITINFO:
         self.textboxstart = 193
         self.checkboxes = {}
         if not self.item in list(main.checkboxes):
-            ui.maketable(5,5,[[self.lineitem(self.item),ui.maketextbox(0,0,str(self.data),200,2,self.menu,roundedcorners=4,height=80,textsize=30,verticalspacing=4,scalesize=False)]],menu=self.menu,roundedcorners=4,boxwidth=[-1,200],boxheight=80,textsize=35,scalesize=False,scalex=False,scaley=False,col=basecol,ID=self.menu+'editbox')
-            self.editbox = ui.IDs[self.menu+'editbox'].tableimages[0][1][1]
+            ui.maketable(5,5,[[self.lineitem(self.item),ui.maketextbox(0,0,str(self.data),200,2,self.menu,roundedcorners=4,height=80,textsize=30,verticalspacing=4,scalesize=False)]],menu=self.menu,roundedcorners=4,boxwidth=[-1,200],boxheight=80,textsize=35,scalesize=False,scalex=False,scaley=False,col=basecol,ID=self.menu+'editbox',guesswidth=400)
+            self.editbox = ui.IDs[self.menu+'editbox'].table[0][1]
             self.textboxstart = ui.IDs[self.menu+'editbox'].boxwidths[0]+14
         else:
-            ui.maketable(5,5,[[self.lineitem(self.item),'']],menu=self.menu,roundedcorners=4,boxwidth=[-1,200],boxheight=80,textsize=35,scalesize=False,scalex=False,scaley=False,col=basecol,ID=self.menu+'editbox',layer=0)
+            ui.maketable(5,5,[[self.lineitem(self.item),'']],menu=self.menu,roundedcorners=4,boxwidth=[-1,200],boxheight=80,textsize=35,scalesize=False,scalex=False,scaley=False,col=basecol,ID=self.menu+'editbox',layer=0,guesswidth=400)
             xinc = ui.IDs[self.menu+'editbox'].boxwidths[0]+20
             exclusive = [self.menu+'checkbox'+b for b in main.checkboxes[self.item] if b!='textbox']
             for b in main.checkboxes[self.item]:
@@ -443,13 +446,13 @@ class EDITINFO:
         if self.editbox.enabled:
             ui.IDs[self.menu+'window'].width = screenw-20
             self.editbox.width = screenw-32-self.textboxstart
-            self.editbox.refresh(ui)
-            ui.IDs[self.menu+'editbox'].boxwidth = [self.titlewidth,screenw-42-self.titlewidth]
-            ui.IDs[self.menu+'editbox'].refresh(ui)
+            self.editbox.refresh()
+            ui.IDs[self.menu+'editbox'].startboxwidth = [self.titlewidth,screenw-42-self.titlewidth]
+            ui.IDs[self.menu+'editbox'].refresh()
         else:
             ui.IDs[self.menu+'window'].width = self.textboxstart+12
-            ui.IDs[self.menu+'editbox'].boxwidth = [self.titlewidth,self.textboxstart-self.titlewidth-14]
-            ui.IDs[self.menu+'editbox'].refresh(ui)
+            ui.IDs[self.menu+'editbox'].startboxwidth = [self.titlewidth,self.textboxstart-self.titlewidth-14]
+            ui.IDs[self.menu+'editbox'].refresh()
     
 
 class ITEM:
@@ -471,17 +474,18 @@ class ITEM:
         ui.makebutton(-78,25,'Delete User',30,lambda: main.confirm(main.deluser),self.menu,ID=self.menu+'del',anchor=('w',0),objanchor=('w','h/2'),roundedcorners=10,verticalspacing=4,clickdownsize=2,scalesize=False,layer=3,col=basecol)
         ui.makerect(0,0,screenw,50,menu=self.menu,layer=2,scalesize=False,col=(83,86,100),ID=self.menu+'rect')
         ui.makerect(0,50,screenw,4,menu=self.menu,layer=2,scalesize=False,col=(80,150,160),ID=self.menu+'rect2')
+        ui.makescroller(0,0,screenh-60,self.slidetable,pageheight=screenh-60,anchor=('w',60),objanchor=('w',0),scalesize=False,menu=self.menu,ID=self.menu+'scroller',runcommandat=1,layer=0)
         ui.maketable(0,0,[],[ui.maketext(0,0,'Item',45,self.menu,roundedcorners=4,col=(83,84,100),textcenter=True),
                              ui.maketext(0,0,'Info',45,self.menu,roundedcorners=4,col=(83,84,100),textcenter=True),
-                             ui.maketext(0,0,'Edit',45,self.menu,roundedcorners=4,col=(83,84,100),textcenter=True)],self.menu,self.menu+'table',roundedcorners=4,textcenter=False,verticalspacing=4,textsize=30,boxwidth=[200,200,100],anchor=(10,60),col=basecol,scalesize=False,scalex=False,scaley=False,clickablerect=pygame.Rect(0,54,4000,4000))
-        ui.makescroller(0,0,screenh-60,self.slidetable,pageheight=screenh-60,anchor=('w',60),objanchor=('w',0),scalesize=False,menu=self.menu,ID=self.menu+'scroller',runcommandat=1,layer=0)
+                             ui.maketext(0,0,'Edit',45,self.menu,roundedcorners=4,col=(83,84,100),textcenter=True)],self.menu,self.menu+'table',roundedcorners=4,textcenter=False,verticalspacing=4,
+                     textsize=30,boxwidth=[f'''(w-126-(ui.IDs["{self.menu+'scroller'}"].active*15))/2''',f'''(w-126-(ui.IDs["{self.menu+'scroller'}"].active*15))/2''',100],anchor=(10,60),col=basecol,scalesize=False,scalex=False,scaley=False,clickablerect=pygame.Rect(0,54,4000,4000))
         self.refreshtable()
 
         ## edit menu
         self.menus.update({a:EDITINFO(a,self.data[a],self.menu,self) for a in list(self.data) if (not(a in main.fieldignore) and not(a == 'Postcode'))})
         self.mileageupdate()
     def refreshtable(self):
-        ui.IDs[self.menu+'table'].wipe(ui,False)
+##        ui.IDs[self.menu+'table'].wipe(ui,False)
         data = []
         for a in self.data:
             if not(a in main.fieldignore):
@@ -503,16 +507,16 @@ class ITEM:
                     data.append([str(a),str(self.data[a]),obj])
         ui.IDs[self.menu+'table'].data = data
         sc = ui.IDs[self.menu+'scroller']
-        if (sc.maxp-sc.minp)>sc.pageheight: ui.IDs[self.menu+'table'].boxwidth = [(screenw-126-15)/2,(screenw-126-15)/2,100]
-        else: ui.IDs[self.menu+'table'].boxwidth = [(screenw-126)/2,(screenw-126)/2,100]
-        ui.IDs[self.menu+'table'].refresh(ui)
+##        if (sc.maxp-sc.minp)>sc.pageheight: ui.IDs[self.menu+'table'].startboxwidth = [(screenw-126-15)/2,(screenw-126-15)/2,100]
+##        else: ui.IDs[self.menu+'table'].startboxwidth = [(screenw-126)/2,(screenw-126)/2,100]
+        ui.IDs[self.menu+'table'].refresh()
         ui.IDs[self.menu+'title'].text = f'Data for {self.data["Forename"]} {self.data["Surname"]}'
-        ui.IDs[self.menu+'title'].refresh(ui)
+        ui.IDs[self.menu+'title'].refresh()
         self.slidetable()
         self.reshiftgui()
     def slidetable(self):
         ui.IDs[self.menu+'table'].y = 60-ui.IDs[self.menu+'scroller'].scroll
-        ui.IDs[self.menu+'table'].refreshcords(ui)
+        ui.IDs[self.menu+'table'].refreshcords()
     def reshiftgui(self):
         ui.IDs[self.menu+'rect'].width = screenw
         ui.IDs[self.menu+'rect2'].width = screenw
@@ -520,7 +524,7 @@ class ITEM:
         ui.IDs[self.menu+'scroller'].height = screenh-60
         ui.IDs[self.menu+'scroller'].pageheight = screenh-60
         ui.IDs[self.menu+'scroller'].maxp = ui.IDs[self.menu+'table'].height
-        ui.IDs[self.menu+'scroller'].refresh(ui)
+        ui.IDs[self.menu+'scroller'].refresh()
         if self.menus != []:
             for a in self.menus:
                 self.menus[a].reshiftgui()
@@ -563,12 +567,12 @@ class MAIN:
     def makegui(self):
         ## title screen
         ui.maketext(0,0,'',250,anchor=('w/2','0'),objanchor=('w/2','0'),img=pygame.image.load(resource_path('images\\make it happen.png')),colorkey=(251,251,251))
-        ui.makebutton(0,270,'Users',50,lambda: ui.movemenu('table','up'),roundedcorners=10,clickdownsize=2,verticalspacing=4,anchor=('w/2','0'),objanchor=('w/2',0))
+        ui.makebutton(0,270,'Users',50,lambda: ui.movemenu('table','up'),roundedcorners=10,clickdownsize=2,verticalspacing=4,anchor=('w/2','0'),objanchor=('w/2',0),ID='main users')
         ui.makebutton(0,330,'Add User',50,self.adduser,anchor=('w/2','0'),objanchor=('w/2',0),roundedcorners=10,verticalspacing=4,clickdownsize=2,scalex=False,scaley=False)
         
         
         ## main table
-        ui.maketable(0,0,[],['ID','Name','More'],anchor=(10,60),boxwidth=[100,300,100],verticalspacing=5,textsize=30,roundedcorners=4,col=basecol,ID='main table',menu='table',scalesize=False,clickablerect=pygame.Rect(0,54,4000,4000))
+        ui.maketable(0,0,[],['ID','Name','More'],anchor=(10,60),boxwidth=[100,'w-8-20-200',100],verticalspacing=5,textsize=30,roundedcorners=4,col=basecol,ID='main table',menu='table',scalesize=False,clickablerect=pygame.Rect(0,54,4000,4000))
         ui.makescroller(0,0,screenh-60,self.slidetable,pageheight=screenh-60,anchor=('w',60),objanchor=('w',0),scalesize=False,menu='table',ID='main scroller',runcommandat=1,layer=0)
         self.refreshtable()
 
@@ -622,7 +626,7 @@ class MAIN:
                         self.shiftingitems.append('add user inp'+a)
                     self.shiftingitems.append('add user'+a)
                     yinc+=h+15
-        ui.makescroller(0,0,screenh-54,self.shiftaddmenu,maxp=yinc,pageheight=screenh,anchor=('w','h'),objanchor=('w','h'),ID='add menu scroller',menu='add user',runcommandat=1,scalesize=False)
+        ui.makescroller(0,0,screenh-54,self.shiftaddmenu,maxp=yinc,pageheight=screenh,anchor=('w','h'),objanchor=('w','h'),ID='add menu scroller',menu='add user',runcommandat=1)
         ui.maketext(10,25,'New User',40,'add user',textcol=(240,240,240),layer=3,backingcol=pyui.shiftcolor(basecol,20),centery=True)
         ui.makerect(0,50,screenw,4,menu='add user',layer=2,col=(80,150,160))
         ui.makerect(0,0,screenw,50,menu='add user',layer=2,col=(83,86,100))
@@ -674,7 +678,7 @@ class MAIN:
             displaydata[a]['encoded'] = encode[displaydata[a]['Active']]
         displaydata.sort(key=lambda x: x['encoded'])
         
-        ui.IDs['main table'].wipe(ui,False)
+##        ui.IDs['main table'].wipe(ui,False)
         data = []
         for a in range(len(displaydata)):
             func = funcmn(displaydata[a]['ID'],self)
@@ -687,9 +691,9 @@ class MAIN:
         else: ui.IDs['main table'].boxwidth = [100,(screenw-8-20-200),100]
         
         ui.IDs['main table'].data = data
-        ui.IDs['main table'].refresh(ui)
+        ui.IDs['main table'].refresh()
         sc.maxp = ui.IDs['main table'].height
-        sc.refresh(ui)
+        sc.refresh()
         
     def newcontact(self,contactmenuuse):
         if contactmenuuse == -1:
@@ -737,7 +741,7 @@ class MAIN:
             ui.IDs[ids[a]].refresh(ui)
         
     def refreshcontactstable(self):
-        ui.IDs['view contacts menu'].wipe(ui,False)
+##        ui.IDs['view contacts menu'].wipe(ui,False)
         data = []
         contactinfo = copy.deepcopy(self.newusercontacts)
         if self.contactmenuuse[3] != 'add user':
@@ -752,9 +756,8 @@ class MAIN:
             data.append([a['Name'],editbutton,crossbutton])
         ui.IDs['view contacts menu'].data = data
         ui.IDs['view contacts menu'].boxheight = 27
-        ui.IDs['view contacts menu'].refresh(ui)
-        ui.IDs['add contacts title'].text = self.contactmenuuse[0]+' Emergency Contact'
-        ui.IDs['add contacts title'].refresh(ui)
+        ui.IDs['view contacts menu'].refresh()
+        ui.IDs['add contacts title'].settext(self.contactmenuuse[0]+' Emergency Contact')
     def saveemergencycontact(self):
         items = list(completecontactdata())
         ids = ['add contact'+a for a in items]
@@ -785,7 +788,7 @@ class MAIN:
     
     def slidetable(self):
         ui.IDs['main table'].y = 60-ui.IDs['main scroller'].scroll
-        ui.IDs['main table'].refreshcords(ui)
+        ui.IDs['main table'].refreshcords()
     def moredetailmenu(self,ID):
         self.menuin = ID-1
         if not self.menus[self.menuin].active:
@@ -863,25 +866,19 @@ class MAIN:
     def shiftaddmenu(self):
         for a in self.shiftingitems:
             ui.IDs[a].y = (ui.IDs[a].anchor[1]+ui.IDs[a].starty*ui.IDs[a].scale-ui.IDs[a].objanchor[1]*ui.IDs[a].scale)/ui.IDs[a].dirscale[1]-ui.IDs['add menu scroller'].scroll
-            ui.IDs[a].refreshcords(ui)
+            ui.IDs[a].refreshcords()
         obj = ui.IDs[self.shiftingitems[7]]
-##        print(obj.y,obj.ID,obj.starty,ui.IDs['add menu scroller'].scroll)
     def reshiftgui(self):
         ui.IDs['search bar'].width = (screenw-100)/2
-        ui.IDs['search bar'].refresh(ui)
+        ui.IDs['search bar'].refresh()
         ui.IDs['tabletoprect1'].width = screenw
         ui.IDs['tabletoprect2'].width = screenw
-        ui.IDs['add menu scroller'].height = screenh-54*ui.scale
-        ui.IDs['add menu scroller'].pageheight = screenh/ui.scale
-        ui.IDs['add menu scroller'].maxp = (ui.IDs['add userStaff'].anchor[1]+(ui.IDs['add userStaff'].starty-ui.IDs['add userStaff'].objanchor[1])*ui.IDs['add userStaff'].scale)/ui.IDs['add userStaff'].dirscale[1]
-        ui.IDs['add menu scroller'].refresh(ui)
-        ui.IDs['add menu scroller'].resetcords(ui)
+        ui.IDs['add menu scroller'].setheight(screenh-54*ui.scale)
+        ui.IDs['add menu scroller'].setpageheight(screenh/ui.scale)
+        ui.IDs['add menu scroller'].setmaxp((ui.IDs['add userStaff'].anchor[1]+(ui.IDs['add userStaff'].starty-ui.IDs['add userStaff'].objanchor[1])*ui.IDs['add userStaff'].scale)/ui.IDs['add userStaff'].dirscale[1])
         ui.IDs['main scroller'].scroll = 0
-        ui.IDs['main scroller'].height = screenh-60
-        ui.IDs['main scroller'].pageheight = screenh-60
-        ui.IDs['main scroller'].maxp = ui.IDs['main table'].height
-        ui.IDs['main scroller'].refresh(ui)
-        ui.IDs['main table'].boxwidth = [100,(screenw-8-20-200),100]
+        ui.IDs['main scroller'].setpageheight(screenh-60)
+        ui.IDs['main scroller'].setmaxp(ui.IDs['main table'].height)
         self.refreshtable()
      
 main = MAIN()
